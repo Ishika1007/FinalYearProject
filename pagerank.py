@@ -17,7 +17,7 @@ print(G.nodes())
 print("Edges of graph: ")
 print(G.edges())
 G.add_edges_from([("a","c"),("c","d"), ("a",1), (1,"d"), ("a",2)])
-
+print("hello")
 nx.draw(G, with_labels=True, font_weight='bold',node_size=400,width=0.5,font_size=10,label='Mygraph',edge_color='b')
 plt.show()
 
