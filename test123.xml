@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<Test xsi:noNamespaceSchemaLocation="" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <Request><HostName><![CDATA[www.demo.testfire.net]]></HostName>
+        <Port><![CDATA[443]]>
+        </Port>
+        <SSL>
+        <![CDATA[Yes]]>
+        </SSL>
+        <URL>
+        <![CDATA[https://www.demo.testfire.net?query=test]]>
+        </URL>
+        <RequestHeader>
+        <![CDATA[GET / HTTP/1.1
+Host: www.webscantest.com
+User-Agent: Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36
+Upgrade-Insecure-Requests: 1
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8
+Accept-Encoding: gzip, deflate
+Accept-Language: en-US,en;q=0.9
+Connection: close]]>
+        </RequestHeader>
+        <RequestData>
+        <![CDATA[thia]]>
+        </RequestData>
+        <ResponseHeader>
+            <![CDATA[is]]>
+        </ResponseHeader>
+        <ResponseData>
+            <![CDATA[<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
+<html>
+	<head>
+	<link type="text/css" rel="stylesheet" href="/css/style.css" />
+		<title>Test Site</title>
+<script language="javascript"><!--
+		function gotoselect()
+		{
+			if(document.menu_form.redirect.value!='pickone') {
+				var destination = '/'+document.menu_form.redirect.value+'/';
+				window.location = destination;
+				}
+		}
+-->
+</script>
+
+	</head>
+	<body topmargin="0" leftmargin="0" marginheight="0" marginwidth="0" bgcolor="#000000">
+		<table cellspacing="0" cellpadding="0" border="4" align="center" width="810">
+			<tr>
+				<td align="center" style="height:50px"><h1><font color="#FFFFFF">Web Scanner Test Site</font></h1><td>
+			</tr>
+
+						<tr>
+							<td align="right" style="height:50px;"><a class="button" href="/login.php"><font >Login</font></a></h1></td>
+						</tr>
+
+			<tr>
+				<td bgcolor="#FFFFFF" style="padding:15px; vertical-align:top">
+					<table cellspacing="0" cellpadding="0" border="4" align="center" width="80%">
+		This site is setup to test automated Web Application scanners like <a style="display: inline;" href="https://www.rapid7.com/products/appspider/">AppSpider</a><br/>
+		You can view a sample report at htt<div style="display: none;"></div>p:/<div style="display: none;"></div>/www.we<div style="display: none;"></div>bscant<div style="display: none;"></div>est.co<div style="display: none;"></div>m/repor<div style="display: none;"></div>t/
+<!-- NTOSklasnNjhasdk287 -->
+	<form name="menu_form">
+		<fieldset>
+                    <legend>DB tests:</legend>
+			<a href="jsmenu/auto_datastore.php">DB Inject Tests
+			<a href="jsmenu/auto_shutterdb.php">Blind SQL Tests</a>
+                  </fieldset>
+
+            	 <fieldset>
+                    <legend>CSRF tests:</legend>
+                        <a href="jsmenu/auto_crosstraining.php">Cross Site Scripting Tests</a>
+                        <a href="csrf">CSRF Tests</a>
+                  </fieldset>
+
+                  <fieldset>
+                    <legend>CORS tests:</legend>
+                        <a href="cors/cors.php">CORS test page</a>
+                  </fieldset>
+
+                  <fieldset>
+                    <legend>JS tests:</legend>
+                        <a href="soap/demo/">SOAP SPA page</a>
+                        <a href="rest/demo/">REST SPA page</a>
+                        <a href="react/">ReactJS test page</a>
+                  </fieldset>
+
+		 <fieldset>
+                    <legend>Basic tests:</legend>
+
+			<div>
+				<select name="redirect" onChange="javascript: gotoselect();">
+					<option value="pickone">Pick a category </option>
+					<option value="hrs">HTTP Response Splitting Tests</option>
+					<option value="payment_analysis">Parameter Analysis Tests</option>
+				</select>
+			</div>
+			<a href="jsmenu/auto_osrun.php">OS Command Inject Tests</a>
+			<a href="jsmenu/cookie_set_coffeepits.php">Java Grinder Tests</a>
+			<a href="jsmenu/dynalink_myfiles.php">Directory Browse Tests</a>
+			<a href="jsmenu/dynalink_rfplaces.php">Resource Finder Tests</a>
+			<a href="jsmenu/gotoframeme.php?foo%3D0+bar%3D+url%3Dhttps%3A%2F%2Fauth.ntobjectives.com+dr%3Dsomedir">Malicious iFrame detection</a>
+			<a href="jsmenu/gotoajax.php">Web 2.0 / AJAX Tests</a>
+			<a href="gonowhere">Go nowhere. Intentional dead link</a>
+			<a href="static/">Lots of static Pages</a>
+			<a href="xmldb/index.php">XPath Injection Tests</a>
+			<a href="infodb/index.php">Browser Cache Tests</a>
+
+        <a href="business">Business Logic Tests</a>
+
+    </fieldset>
+	</form>
+		<font color="grey" size="-2">There are other instances which are protected by various authentication mechanisms (http:/<div style="display: none;"></div>/forma<div style="display: none;"></div>uth.we<div style="display: none;"></div>bscant<div style="display: none;"></div>est.co<div style="display: none;"></div>m, http:/<div style="display: none;"></div>/basic<div style="display: none;"></div>auth.w<div style="display: none;"></div>ebscan<div style="display: none;"></div>test.c<div style="display: none;"></div>om, http:/<div style="display: none;"></div>/duala<div style="display: none;"></div>uth.we<div style="display: none;"></div>bscant<div style="display: none;"></div>est.co<div style="display: none;"></div>m). <br/>
+<img border="0" src="http://www.mightyseek.com/images/spacer.gif" />
+<div style="display:none;"><a href="images/bouncingmike.jpg?a=b">A big picture</a></div>
+<!-- Example comment -->
+<!-- code comment
+	<b>Here is some HTML commented</b>
+-->
+<!-- Broken code comment
+	<b Not vaild HTML
+-->
+
+						<tr style="height:20%; vertical-align:top">
+							<td align="center"><font color="grey" size="-2">The form based credentials are testuser/testpass, and the HTTP Basic credentials are btestuser/btestpass.</font>
+						</tr>
+
+						<tr style="height:10%; vertical-align:top">
+							<td align="center"><a href="/privacy.php"><font color="#FFFFFF">Privacy Policy</font></a></td>
+						</tr>
+
+					</table>
+				</td>
+			</tr>
+		</table>
+	</body>
+</html>
+]]>
+        </ResponseData>
+    </Request>
+    <Request><HostName><![CDATA[www.demo.testfire.net]]></HostName>
+        <Port><![CDATA[443]]>
+        </Port>
+        <SSL>
+        <![CDATA[Yes]]>
+        </SSL>
+        <URL>
+        <![CDATA[https://www.demo.testfire.net?query=test]]>
+        </URL>
+        <RequestHeader>
+        <![CDATA[GET /jsmenu/auto_datastore.php HTTP/1.1
+Host: www.webscantest.com
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8
+Referer: http://www.webscantest.com/
+Accept-Encoding: gzip, deflate
+Accept-Language: en-US,en;q=0.9
+Cookie: TEST_SESSIONID=53ciigbmefmnicen2og1hcc753; NB_SRVID=srv140700
+Connection: close]]>
+        </RequestHeader>
+        <RequestData>
+        <![CDATA[thia]]>
+        </RequestData>
+        <ResponseHeader>
+            <![CDATA[is]]>
+        </ResponseHeader>
+        <ResponseData>
+            <![CDATA[<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
+<html>
+	<head>
+	<link type="text/css" rel="stylesheet" href="/css/style.css" />
+		<title></title>
+
+	</head>
+	<body topmargin="0" leftmargin="0" marginheight="0" marginwidth="0" bgcolor="#000000">
+		<table cellspacing="0" cellpadding="0" border="4" align="center" width="810">
+			<tr>
+				<td align="center" style="height:50px"><h1><font color="#FFFFFF">Web Scanner Test Site</font></h1><td>
+			</tr>
+
+						<tr>
+							<td align="right" style="height:50px;"><a class="button" href="/login.php"><font >Login</font></a></h1></td>
+						</tr>
+
+			<tr>
+				<td bgcolor="#FFFFFF" style="padding:15px; vertical-align:top">
+					<table cellspacing="0" cellpadding="0" border="4" align="center" width="80%">
+<script language="javascript">
+window.location="../data"+"store/";
+</script>
+
+
+						<tr style="height:20%; vertical-align:top">
+							<td align="center"><font color="grey" size="-2">The form based credentials are testuser/testpass, and the HTTP Basic credentials are btestuser/btestpass.</font>
+						</tr>
+
+						<tr style="height:10%; vertical-align:top">
+							<td align="center"><a href="/privacy.php"><font color="#FFFFFF">Privacy Policy</font></a></td>
+						</tr>
+
+					</table>
+				</td>
+			</tr>
+		</table>
+	</body>
+</html>
+]]>
+        </ResponseData>
+    </Request>
+</Test>

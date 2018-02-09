@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<Test xsi:noNamespaceSchemaLocation="" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <Request><HostName><![CDATA[www.demo.testfire.net]]></HostName>
+        <Port><![CDATA[443]]>
+        </Port>
+        <SSL>
+        <![CDATA[Yes]]>
+        </SSL>
+        <URL>
+        <![CDATA[https://www.demo.testfire.net?query=test]]>
+        </URL>
+        <RequestHeader>
+        <![CDATA[GET /osrun/ HTTP/1.1
+Host: www.webscantest.com
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8
+Referer: http://www.webscantest.com/jsmenu/auto_osrun.php
+Accept-Encoding: gzip, deflate
+Accept-Language: en-US,en;q=0.9
+Cookie: TEST_SESSIONID=164ovt5rvo8ffggl0gqfbm0i95; NB_SRVID=srv140717
+Connection: close]]>
+        </RequestHeader>
+        <RequestData>
+        <![CDATA[thia]]>
+        </RequestData>
+        <ResponseHeader>
+            <![CDATA[is]]>
+        </ResponseHeader>
+        <ResponseData>
+            <![CDATA[ <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
+<html>
+	<head>
+	<link type="text/css" rel="stylesheet" href="/css/style.css"/>
+		<title>OS Commanding Tests entry point</title>
+
+	</head>
+	<body topmargin="0" leftmargin="0" marginheight="0" marginwidth="0" bgcolor="#000000">
+		<table cellspacing="0" cellpadding="0" border="4" align="center" width="810">
+			<tr>
+				<td align="center" style="height:50px"><h1><font color="#FFFFFF">Web Scanner Test Site</font></h1><td>
+			</tr>
+
+						<tr>
+							<td align="right" style="height:50px;"><a class="button" href="/login.php"><font >Login</font></a></h1></td>
+						</tr>
+
+			<tr>
+				<td bgcolor="#FFFFFF" style="padding:15px; vertical-align:top">
+					<table cellspacing="0" cellpadding="0" border="4" align="center" width="80%">
+	<ul>
+		<li><a href="whois.php">This is vulnerable to cmd inject</a></li>
+		<li><a href="whois_nv.php">This is not vulnerable to cmd inject</a></li>
+	</ul>
+	<img border="0" src="http://www.mightyseek.com/images/spacer.gif" />
+
+						<tr style="height:20%; vertical-align:top">
+							<td align="center"><font color="grey" size="-2">The form based credentials are testuser/testpass, and the HTTP Basic credentials are btestuser/btestpass.</font>
+						</tr>
+
+						<tr style="height:10%; vertical-align:top">
+							<td align="center"><a href="/privacy.php"><font color="#FFFFFF">Privacy Policy</font></a></td>
+						</tr>
+
+					</table>
+				</td>
+			</tr>
+		</table>
+	</body>
+</html>
+]]>
+        </ResponseData>
+    </Request>
+</Test>
