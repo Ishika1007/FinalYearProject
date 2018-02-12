@@ -11,6 +11,7 @@ def CDATA(text=None):
     return element
 
 
+
 def parseXML(xmlfile):
     # create element tree object
     tree = ET.parse(xmlfile)
@@ -39,6 +40,8 @@ def parseXML(xmlfile):
             if child.tag == "ResponseData":
                 processResponseData(ownPath,child.text)
                 get_form_action_url(ownPath,child.text)
+                get_meta_URL(ownPath,child.text)
+                get_script_source(ownPath,child.text)
 
             # special checking for namespace object content:media
 
@@ -90,8 +93,34 @@ def get_form_action_url(ownpath,childPath):
         else:
             frmpath = "/"+frm[8:-1]
         print(frmpath)
-        G.add_node(frmpath)
-        G.add_edge(ownpath,childPath)
+        #G.add_node(frmpath)
+        #G.add_edge(ownpath,childPath)
+
+def get_script_source(ownPath,childPath):
+    srpt = re.findall(r'\r\n^\<script []* \r\n\<\/script\>$',childPath)
+    print(srpt)
+    for srs in srpt:
+        src = re.findall(r'src=\"[^ ]*\"',childPath)
+        if src[5] =="/":
+            path = src[5:-1]
+        else:
+            path = "/"+src[5:-1]
+        print(path)
+        G.add_node(path)
+        G.add_edge(ownPath,path)
+
+def get_meta_URL(ownPath,childPath):
+    meta = re.findall(r'<meta .* />',childPath)
+    print(meta)
+    for url in meta:
+        url = re.findall(r'URL=\'[^ ]*\'',url)
+        for url1 in url:
+            path = url1[11:-2]
+            print(path)
+            #G.add_node(path)
+            #G.add_edge(ownPath, path)
+
+
 
 def processRequestHeader(child):
     url = re.findall(r'GET.*HTTP/1.1', child)
