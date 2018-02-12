@@ -4,7 +4,12 @@ import xml.etree.ElementTree as ET
 import re
 import networkx as nx
 import matplotlib.pyplot as plt
+from collections import namedtuple
 G=nx.DiGraph()
+Main_list = []
+fields = ['Request_Method','URL','Host','Referer','Origin','CSRF_Token','Form','sensitive_parameters','status_code','content_type',
+         'outgoing_URL','Server','x_frame_options','x_xss','content_length','comments']
+Request = namedtuple('Request', fields)
 def CDATA(text=None):
     element = ET.Element('![CDATA[')
     element.text = text
@@ -30,8 +35,10 @@ def parseXML(xmlfile):
         for child in item:
             request[child.tag] = child.text
             if child.tag == "RequestHeader":
-                ownPath = processRequestHeader(child.text)
+                request_method = getReqMethod(child.text)
+                ownPath = processRequestHeader(request_method,child.text)
                 referer = processRequestHeaderReferer(child.text)
+
                 G.add_node(ownPath)
                 if referer!=None:
                     G.add_node(referer)
@@ -43,7 +50,8 @@ def parseXML(xmlfile):
 
         # append news dictionary to news items list
         data.append(request)
-
+       # Main_list.append(Request(Request_Method,URL,Host,Referer,Origin,CSRF_Token,Form,sensitive_parameters,status_code,content_type,
+        # outgoing_URL,Server,x_frame_options,x_xss,content_length,comments))
 
         # return news items list
     nx.draw(G, with_labels=True)
@@ -51,6 +59,7 @@ def parseXML(xmlfile):
     return data
 
 
+### XML to python..................................
 def savetoCSV(requestitems, filename):
     # specifying the fields for csv file
     fields = ['HostName', 'Port', 'SSL', 'URL', 'RequestHeader', 'RequestData', 'ResponseHeader', 'ResponseData']
@@ -66,6 +75,7 @@ def savetoCSV(requestitems, filename):
         # writing data rows
         writer.writerows(requestitems)
 
+### links through href....................
 def processResponseData(ownPath,childPath):
     href = re.findall(r'href=\"[^<]*\"', childPath)
     for link in href:
@@ -81,12 +91,14 @@ def processResponseData(ownPath,childPath):
     print(G.edges())
     #D = G.to_directed()
 
-def processRequestHeader(child):
-    url = re.findall(r'GET.*HTTP/1.1', child)
-    ownPath = url[0]
-    #print(ownPath[3:-9])
-    return ownPath[4:-9]
+### own url.......................................
+def processRequestHeader(method,child):
+    method_length = len(method)
+    url = re.findall(r'.*HTTP/1.1', child)
+    ownPath = re.sub('[\s+]', '', url[0])
+    return ownPath[method_length:-8]
 
+### referer........................................
 def processRequestHeaderReferer(child):
     hostname = re.findall(r'Host\:.*', child)
     hostname = hostname[0]
@@ -99,6 +111,7 @@ def processRequestHeaderReferer(child):
     refererString = refererString[0]
     return refererString[len(referer):]
 
+###pagerank.........................................
 def pagerank(G, alpha=0.85, personalization=None,
              max_iter=5, tol=1.0e-2, nstart=None, weight='weight',
              dangling=None):
@@ -114,9 +127,6 @@ def pagerank(G, alpha=0.85, personalization=None,
         # Create a copy in (right) stochastic form
     W = nx.stochastic_graph(D, weight=weight)
     N = W.number_of_nodes()
-
-
-
 
     # Choose fixed starting vector if not given
     if nstart is None:
@@ -170,12 +180,17 @@ def pagerank(G, alpha=0.85, personalization=None,
         err = sum([abs(x[n] - xlast[n]) for n in x])
         if err < N * tol:
             return x
-        print("iteration"+ i)
+
     raise nx.NetworkXError('pagerank: power iteration failed to converge '
                         'in %d iterations.' % max_iter)
 
-
-
+###request method................
+def getReqMethod(child):
+    method = re.findall(r'.*HTTP/1.1', child)
+    method = method[0]
+    method = re.findall(r'[^/]*', method)
+    method = re.sub('[\s+]', '', method[0])
+    return method
 def main():
 
     # parse xml file
@@ -183,10 +198,10 @@ def main():
 
     # store news items in a csv file
     #savetoCSV(requestitems, 'myrequests.csv')
-    p = pagerank(G, alpha=0.85, personalization=None,
-             max_iter=5, tol=1.0e-6, nstart=None, weight='weight',
-             dangling=None)
-    print(p)
+    #p = pagerank(G, alpha=0.85, personalization=None,
+        #     max_iter=5, tol=1.0e-6, nstart=None, weight='weight',
+         #    dangling=None)
+    #print(p)
 
 if __name__ == "__main__":
     # calling main function
