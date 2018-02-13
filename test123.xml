@@ -24,7 +24,17 @@ Connection: close]]>
         <![CDATA[thia]]>
         </RequestData>
         <ResponseHeader>
-            <![CDATA[is]]>
+            <![CDATA[ HTTP/1.1 200 OK
+Date: Mon, 12 Feb 2018 09:40:05 GMT
+Server: Apache/2.4.7 (Ubuntu)
+X-Powered-By: PHP/5.5.9-1ubuntu4.22
+Access-Control-Allow-Origin: http://www.webscantest.com
+Vary: Accept-Encoding
+Content-Length: 252
+Connection: close
+Content-Type: text/html
+Set-Cookie: NB_SRVID=srv140717; path=/
+Cache-control: private]]>
         </ResponseHeader>
         <ResponseData>
             <![CDATA[<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
@@ -154,6 +164,8 @@ Upgrade-Insecure-Requests: 1
 User-Agent: Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36
 Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8
 Referer: http://www.webscantest.com/
+Origin: https://abcxyzfoo.com
+X-CSRF-TOKEN: d3dd3c9d-9a4e-4531-82d9-6576660ef3a8
 Accept-Encoding: gzip, deflate
 Accept-Language: en-US,en;q=0.9
 Cookie: TEST_SESSIONID=53ciigbmefmnicen2og1hcc753; NB_SRVID=srv140700
@@ -163,7 +175,14 @@ Connection: close]]>
         <![CDATA[thia]]>
         </RequestData>
         <ResponseHeader>
-            <![CDATA[is]]>
+            <![CDATA[HTTP/1.1 401 Unauthorized
+Date: Mon, 12 Feb 2018 09:38:54 GMT
+Server: Apache/2.4.7 (Ubuntu)
+X-Powered-By: PHP/5.5.9-1ubuntu4.22
+Access-Control-Allow-Origin: *
+Content-Length: 0
+Connection: close
+Content-Type: text/html]]>
         </ResponseHeader>
         <ResponseData>
             <![CDATA[<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">

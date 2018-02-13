@@ -36,15 +36,19 @@ def parseXML(xmlfile):
             request[child.tag] = child.text
             if child.tag == "RequestHeader":
                 request_method = getReqMethod(child.text)
-                ownPath = processRequestHeader(request_method,child.text)
-                referer = processRequestHeaderReferer(child.text)
-
-                G.add_node(ownPath)
+                host = getHost(child.text)
+                URL = getURL(request_method, child.text)
+                referer = getReferer(child.text)
+                origin = getOrigin(child.text)
+                G.add_node(URL)
                 if referer!=None:
                     G.add_node(referer)
-                    G.add_edge(referer,ownPath)
+                    G.add_edge(referer,URL)
             if child.tag == "ResponseData":
-                processResponseData(ownPath,child.text)
+                getHref(URL,child.text)
+            if child.tag == "ResponseHeader":
+                status_code = getStatusCode(child.text)
+                content_type = getContentType(child.text)
 
             # special checking for namespace object content:media
 
@@ -76,7 +80,7 @@ def savetoCSV(requestitems, filename):
         writer.writerows(requestitems)
 
 ### links through href....................
-def processResponseData(ownPath,childPath):
+def getHref(ownPath,childPath):
     href = re.findall(r'href=\"[^<]*\"', childPath)
     for link in href:
         if link[6]=="/":
@@ -92,14 +96,14 @@ def processResponseData(ownPath,childPath):
     #D = G.to_directed()
 
 ### own url.......................................
-def processRequestHeader(method,child):
+def getURL(method,child):
     method_length = len(method)
     url = re.findall(r'.*HTTP/1.1', child)
     ownPath = re.sub('[\s+]', '', url[0])
     return ownPath[method_length:-8]
 
 ### referer........................................
-def processRequestHeaderReferer(child):
+def getReferer(child):
     hostname = re.findall(r'Host\:.*', child)
     hostname = hostname[0]
     hostname = hostname[6:]
@@ -184,6 +188,13 @@ def pagerank(G, alpha=0.85, personalization=None,
     raise nx.NetworkXError('pagerank: power iteration failed to converge '
                         'in %d iterations.' % max_iter)
 
+##hostname:
+def getHost(child):
+    hostname = re.findall(r'Host\:.*', child)
+    hostname = hostname[0]
+    hostname = hostname[6:]
+    print(hostname)
+
 ###request method................
 def getReqMethod(child):
     method = re.findall(r'.*HTTP/1.1', child)
@@ -191,6 +202,36 @@ def getReqMethod(child):
     method = re.findall(r'[^/]*', method)
     method = re.sub('[\s+]', '', method[0])
     return method
+
+##Origin..........................
+def getOrigin(child):
+    origin = re.findall(r'Origin.*', child)
+    if len(origin)!=0:
+        origin = re.sub('[\s+]', '', origin[0])
+        print(origin[7:])
+        return origin[7:]
+    else:
+        return None
+
+def getCsrfToken(child):
+
+#--------------RESPONSE ...............
+###status code.....................
+def getStatusCode(child):
+    status = re.findall(r'HTTP.*', child)
+    status = re.sub('[\s+]', '', status[0])
+    print(status[8:11])
+    return status[8:11]
+
+#content type.........................
+def getContentType(child):
+    contentType = re.findall(r'Content-Type.*',child)
+    if len(contentType)!=0:
+        contentType = re.sub('[\s+]', '', contentType[0])
+        return (contentType[13:])
+    else:
+        return None
+
 def main():
 
     # parse xml file
