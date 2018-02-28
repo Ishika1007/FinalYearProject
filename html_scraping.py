@@ -26,7 +26,9 @@ ws2 = wbnew.active
 #x = True
 def getParameters(hostname,urlname):
     host = hostname
+    host = check_suffix(host)
     URL = urlname
+    URL = check_suffix(URL)
     #requestMethod,url,host,referer,origin,csrfToken,form,sensitiveParameters,statusCode,contentType,
      #    server,x_frame_options,x_xss,content_length,comments
     outgoingUrl = []
@@ -46,24 +48,24 @@ def getParameters(hostname,urlname):
         url = s.path_url #url
         data = r.text
         requestMethod = r.request.method #request method
-        host = s.headers['host'] #host name
         statusCode = r.status_code
         server = r.headers['Server']
         #print(server)
-        soup = BeautifulSoup(data)
+        soup = BeautifulSoup(data,'html.parser')
         form = False      # form tag
         max = ws2.max_row+1
-        print("msx")
-        print(max)
         #print(r.history)
         #print("HREFs:")
         count=0
+        val1 = URL[(len(host)-1):]
         for link in soup.find_all('a'):
             if link.get('href'):
                 #print(link.get('href'))
                 outgoingUrl.append(link.get('href'))
-                ws2.cell(row=max, column=1).value = urlname[len(hostname):]
-                ws2.cell(row=max, column=2).value = link.get('href')
+                a = link.get('href')
+                a = check_path(a)
+                ws2.cell(row=max, column=1).value = val1
+                ws2.cell(row=max, column=2).value = a
                 wbnew.save('new_excel.xlsx')
                 max+=1
         #print("SCRIPT SOURCE:")
@@ -71,8 +73,10 @@ def getParameters(hostname,urlname):
             if link.get('src'):
                 #print(link.get('src'))
                 outgoingUrl.append(link.get('src'))
-                ws2.cell(row=max, column=1).value = urlname[len(hostname):]
-                ws2.cell(row=max, column=2).value = link.get('src')
+                a = link.get('src')
+                a = check_path(a)
+                ws2.cell(row=max, column=1).value = val1
+                ws2.cell(row=max, column=2).value = a
                 wbnew.save('new_excel.xlsx')
                 max+= 1
         #print("IMAGE SOURCE:")
@@ -80,8 +84,10 @@ def getParameters(hostname,urlname):
             if link.get('src'):
                 #print(link.get('src'))
                 outgoingUrl.append(link.get('src'))
-                ws2.cell(row=max, column=1).value = urlname[len(hostname):]
-                ws2.cell(row=max, column=2).value = link.get('src')
+                a = link.get('src')
+                a = check_path(a)
+                ws2.cell(row=max, column=1).value = val1
+                ws2.cell(row=max, column=2).value = a
                 wbnew.save('new_excel.xlsx')
                 max+=1
         #print("FORM ELEEMENT:")
@@ -90,8 +96,10 @@ def getParameters(hostname,urlname):
                 #print(link.get('action'))
                 form = True
                 outgoingUrl.append(link.get('action'))
-                ws2.cell(row=max, column=1).value = urlname[len(hostname):]
-                ws2.cell(row=max, column=2).value = link.get('action')
+                a = link.get('action')
+                a = check_path(a)
+                ws2.cell(row=max, column=1).value = val1
+                ws2.cell(row=max, column=2).value = a
                 wbnew.save('new_excel.xlsx')
                 count+=1
                 max+= 1
@@ -99,27 +107,36 @@ def getParameters(hostname,urlname):
             if link.get('URL'):
                 #print(link.get('URL'))
                 outgoingUrl.append(link.get('URL'))
-                ws2.cell(row=max, column=1).value = urlname[len(hostname):]
-                ws2.cell(row=max, column=2).value = link.get('URL')
+                a = link.get('URL')
+                a = check_path(a)
+                ws2.cell(row=max, column=1).value = val1
+                ws2.cell(row=max, column=2).value = a
                 wbnew.save('new_excel.xlsx')
                 max+= 1
          # LINK HREF LEFT..............
-        print(URL)
-        print(count)
-        #print(hostname)
-        print(len(outgoingUrl))
+
 
 
     except requests.exceptions.ConnectionError as exc:
         print(exc)
         sleep(5)
 
+def check_path(a):
+    if a[0]=='/':
+        return a
+    else:
+        return "/"+a
+def check_suffix(a):
+    if a[-1]=='/':
+        return a
+    else:
+        return a+"/"
 def main():
     wb = openpyxl.Workbook()
     ws = wb.active
 
     f = open('myexcel.csv')
-    reader = csv.reader(f, delimiter=',')
+    reader = csv.reader(f)
     for row in reader:
         ws.append(row)
     f.close()
@@ -128,10 +145,11 @@ def main():
     wb2 = load_workbook('myexcel.xlsx')
     ws = wb2.active
 #    print(ws['A1'].value)
-
-    for row in ws.iter_rows(min_row=1, min_col=17, max_col=17, max_row=135):
+    max = ws.max_row
+    print(max)
+    for row in ws.iter_rows(min_row=1, min_col=1, max_col=1, max_row=max):
         for cell in row:
-            getParameters(ws['A2'].value, cell.value)
+            getParameters(ws['A1'].value, cell.value)
 
 
 if __name__ == "__main__":
