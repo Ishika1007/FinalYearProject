@@ -49,7 +49,7 @@ def getParameters(hostname,urlname):
         data = r.text
         requestMethod = r.request.method #request method
         statusCode = r.status_code
-        server = r.headers['Server']
+        '''server = r.headers['Server'] '''
         #print(server)
         soup = BeautifulSoup(data,'html.parser')
         form = False      # form tag
@@ -64,10 +64,11 @@ def getParameters(hostname,urlname):
                 outgoingUrl.append(link.get('href'))
                 a = link.get('href')
                 a = check_path(a)
-                ws2.cell(row=max, column=1).value = val1
-                ws2.cell(row=max, column=2).value = a
-                wbnew.save('new_excel.xlsx')
-                max+=1
+                if check_file_type(a):
+                    ws2.cell(row=max, column=1).value = val1
+                    ws2.cell(row=max, column=2).value = a
+                    wbnew.save('new_excel.xlsx')
+                    max+=1
         #print("SCRIPT SOURCE:")
         for link in soup.find_all('script'):
             if link.get('src'):
@@ -75,10 +76,11 @@ def getParameters(hostname,urlname):
                 outgoingUrl.append(link.get('src'))
                 a = link.get('src')
                 a = check_path(a)
-                ws2.cell(row=max, column=1).value = val1
-                ws2.cell(row=max, column=2).value = a
-                wbnew.save('new_excel.xlsx')
-                max+= 1
+                if check_file_type(a):
+                    ws2.cell(row=max, column=1).value = val1
+                    ws2.cell(row=max, column=2).value = a
+                    wbnew.save('new_excel.xlsx')
+                    max+= 1
         #print("IMAGE SOURCE:")
         for link in soup.find_all('img'):
             if link.get('src'):
@@ -86,10 +88,11 @@ def getParameters(hostname,urlname):
                 outgoingUrl.append(link.get('src'))
                 a = link.get('src')
                 a = check_path(a)
-                ws2.cell(row=max, column=1).value = val1
-                ws2.cell(row=max, column=2).value = a
-                wbnew.save('new_excel.xlsx')
-                max+=1
+                if check_file_type(a):
+                    ws2.cell(row=max, column=1).value = val1
+                    ws2.cell(row=max, column=2).value = a
+                    wbnew.save('new_excel.xlsx')
+                    max+=1
         #print("FORM ELEEMENT:")
         for link in soup.find_all('form'):
             if link.get('action'):
@@ -98,21 +101,23 @@ def getParameters(hostname,urlname):
                 outgoingUrl.append(link.get('action'))
                 a = link.get('action')
                 a = check_path(a)
-                ws2.cell(row=max, column=1).value = val1
-                ws2.cell(row=max, column=2).value = a
-                wbnew.save('new_excel.xlsx')
-                count+=1
-                max+= 1
+                if check_file_type(a):
+                    ws2.cell(row=max, column=1).value = val1
+                    ws2.cell(row=max, column=2).value = a
+                    wbnew.save('new_excel.xlsx')
+                    count+=1
+                    max+= 1
         for link in soup.find_all('meta'):
             if link.get('URL'):
                 #print(link.get('URL'))
                 outgoingUrl.append(link.get('URL'))
                 a = link.get('URL')
                 a = check_path(a)
-                ws2.cell(row=max, column=1).value = val1
-                ws2.cell(row=max, column=2).value = a
-                wbnew.save('new_excel.xlsx')
-                max+= 1
+                if check_file_type(a):
+                    ws2.cell(row=max, column=1).value = val1
+                    ws2.cell(row=max, column=2).value = a
+                    wbnew.save('new_excel.xlsx')
+                    max+= 1
          # LINK HREF LEFT..............
 
 
@@ -121,11 +126,20 @@ def getParameters(hostname,urlname):
         print(exc)
         sleep(5)
 
+def check_file_type(a):
+    print(type(a))
+    if ".css" in a or ".png" in a or ".ico" in a or ".woff" in a or ".woff2" in a or ".gif" in a or ".txt" in a:
+        return False
+    else:
+        return True
+
+
 def check_path(a):
     if a[0]=='/':
         return a
     else:
         return "/"+a
+
 def check_suffix(a):
     if a[-1]=='/':
         return a
