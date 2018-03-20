@@ -39,6 +39,7 @@ def parseXML(xmlfile):
         statusCode=100
         # iterate child elements of item
         for child in item:
+            script=0
             request[child.tag] = child.text
             if child.tag == "Hostname":
                 host = child.text
@@ -46,11 +47,18 @@ def parseXML(xmlfile):
                 host1 = "http://"+host+":80"
             if child.tag == "Url":
                 URL = child.text
+                # parameters as input from user... symbols "="
                 req1 = requests.get(URL, allow_redirects=False)
                 sessions = requests.Session()
                 retry = Retry(connect=3, backoff_factor=0.5)
                 adapter = HTTPAdapter(max_retries=retry)
                 r = sessions.get(URL)
+                if 'X-Powered-By' in r.headers:
+                    print(URL)
+                    x_powered_by = r.headers['X-Powered-By']
+                else:
+                    x_powered_by = ""
+
                 requestMethod = r.request.method
                 server = r.headers['Server']
                 contentType = r.headers['Content-Type']
@@ -72,25 +80,26 @@ def parseXML(xmlfile):
                     if link.get('href'):
                         a=link.get('href')
                         a = check_both(a)
-                        append_new(max, URL, a, requestMethod,host,statusCode,server, referer,0,contentType,contentLength)
+                        append_new(max, URL, a, requestMethod,host,statusCode,server, referer,0,contentType,contentLength,x_powered_by)
                         max += 1
                 for link in soup.find_all('script'):
+                    script = 1
                     if link.get('src'):
                         a=link.get('src')
                         a = check_both(a)
-                        append_new(max, URL, a, requestMethod,host,statusCode,server, referer,0,contentType,contentLength)
+                        append_new(max, URL, a, requestMethod,host,statusCode,server, referer,0,contentType,contentLength,x_powered_by)
                         max += 1
                 for link in soup.find_all('form'):
                     if link.get('action'):
                         a=link.get('action')
                         a = check_both(a)
-                        append_new(max, URL, a, requestMethod,host,statusCode,server, referer,1,contentType,contentLength)
+                        append_new(max, URL, a, requestMethod,host,statusCode,server, referer,1,contentType,contentLength,x_powered_by)
                         max += 1
                 for link in soup.find_all('meta'):
                     if link.get('URL'):
                         a=link.get('URL')
                         a = check_both(a)
-                        append_new(max, URL, a, requestMethod,host,statusCode,server, referer,0,contentType,contentLength)
+                        append_new(max, URL, a, requestMethod,host,statusCode,server, referer,0,contentType,contentLength,x_powered_by)
                         max += 1
             # special checking for namespace object content:media
 
@@ -116,9 +125,9 @@ def initialize_fields():
     ws2.cell(row=1, column=8).value = "Form"
     ws2.cell(row=1, column=9).value = "Content-type"
     ws2.cell(row=1, column=10).value = "Content-length"
-def append_new(max,URL,a,requestMethod,Host,statusCode,server, referer,form,ct,cl):
-    mydata.add((URL,a,requestMethod,Host,statusCode,server, referer,form,ct,cl))
-    j=0
+    ws2.cell(row=1, column=11).value = "X-Powered-by:"
+def append_new(max,URL,a,requestMethod,Host,statusCode,server, referer,form,ct,cl,xpb):
+    mydata.add((URL,a,requestMethod,Host,statusCode,server, referer,form,ct,cl,xpb))
 
 def check_file_type(a):
     print(type(a))
@@ -150,7 +159,7 @@ def main():
         outer+=1
         for j in i:
             inner+=1
-            if inner==11:
+            if inner==12:
                 inner=1
             ws2.cell(row=outer, column=inner).value = j
     wbnew.save('new_excel.xlsx')
