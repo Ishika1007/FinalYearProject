@@ -131,6 +131,9 @@ def initialize_fields():
     ws2.cell(row=1, column=9).value = "Content-type"
     ws2.cell(row=1, column=10).value = "Content-length"
     ws2.cell(row=1, column=11).value = "X-Powered-by:"
+    ws2.cell(row=1, column=12).value = "Degree Centrality:"
+    ws2.cell(row=1, column=13).value = "Closeness Centrality:"
+    ws2.cell(row=1, column=14).value = "Betweeness Centrality:"
 def append_new(max,URL,a,requestMethod,Host,statusCode,server, referer,form,ct,cl,xpb):
     G.add_node(URL)
     G.add_node(a)
@@ -161,15 +164,30 @@ def main():
 
     # parse xml file
     parseXML('test123.xml')
-    print(len(mydata))
+    dcs = nx.degree_centrality(G)
+    # Gt = most_important(G) # trimming
+
+    cns = nx.closeness_centrality(G)
+    print(cns)
+
+    pns = nx.betweenness_centrality(G)
+    print(pns)
+    dc,cn,bc = "","",""
     outer,inner=1,0
-    for i in mydata:
+    for i in sorted(mydata):
         outer+=1
-        for j in i:
+        for j,k in enumerate(i):
+            if j==0:
+                dc = dcs[k]
+                cn = cns[k]
+                bc = pns[k]
             inner+=1
             if inner==12:
                 inner=1
-            ws2.cell(row=outer, column=inner).value = j
+            ws2.cell(row=outer, column=inner).value = k
+        ws2.cell(row=outer, column=12).value = dc
+        ws2.cell(row=outer, column=13).value = cn
+        ws2.cell(row=outer, column=14).value = bc
     wbnew.save('new_excel.xlsx')
     nx.draw(G, with_labels=True)
     plt.show()
