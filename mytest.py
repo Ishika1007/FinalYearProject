@@ -5,6 +5,7 @@ import re
 import networkx as nx
 import matplotlib.pyplot as plt
 from collections import namedtuple
+import networkx as nx
 from bs4 import BeautifulSoup
 from time import sleep
 import requests
@@ -17,7 +18,11 @@ wbnew = openpyxl.Workbook()
 wbnew.save('new_excel.xlsx')
 ws2 = wbnew.active
 mydata = set()
+G=nx.DiGraph()
 mycount = 0
+payment = ['Credit card','Visa','Master card','CVV','Name on card','Debit card','Payment information','Card number'
+           ,'Postal code','Company Name','Account','Paypal','Paytm','Rs.','USD','Proceed to pay','Rupees']
+session = ['login','logout','username','password','captcha','signup','email','user','sign-in','phone-number','SSN','google']
 def parseXML(xmlfile):
 
     initialize_fields()
@@ -127,6 +132,9 @@ def initialize_fields():
     ws2.cell(row=1, column=10).value = "Content-length"
     ws2.cell(row=1, column=11).value = "X-Powered-by:"
 def append_new(max,URL,a,requestMethod,Host,statusCode,server, referer,form,ct,cl,xpb):
+    G.add_node(URL)
+    G.add_node(a)
+    G.add_edge(URL,a)
     mydata.add((URL,a,requestMethod,Host,statusCode,server, referer,form,ct,cl,xpb))
 
 def check_file_type(a):
@@ -163,6 +171,8 @@ def main():
                 inner=1
             ws2.cell(row=outer, column=inner).value = j
     wbnew.save('new_excel.xlsx')
+    nx.draw(G, with_labels=True)
+    plt.show()
 
 if __name__ == "__main__":
     # calling main function
