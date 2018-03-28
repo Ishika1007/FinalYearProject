@@ -2,6 +2,7 @@
 import csv
 import xml.etree.ElementTree as ET
 import re
+import nltk
 import networkx as nx
 import matplotlib.pyplot as plt
 from collections import namedtuple
@@ -17,9 +18,14 @@ from openpyxl import load_workbook
 wbnew = openpyxl.Workbook()
 wbnew.save('new_excel.xlsx')
 ws2 = wbnew.active
+wbnew2 = openpyxl.Workbook()
+wbnew2.save('data_excel.xlsx')
+ws3 = wbnew2.active
+
 mydata = set()
 G=nx.DiGraph()
 mycount = 0
+myglobal = {}
 payment = ['Credit card','Visa','Master card','CVV','Name on card','Debit card','Payment information','Card number'
            ,'Postal code','Company Name','Account','Paypal','Paytm','Rs.','USD','Proceed to pay','Rupees']
 session = ['login','logout','username','password','captcha','signup','email','user','sign-in','phone-number','SSN','google']
@@ -65,9 +71,9 @@ def parseXML(xmlfile):
                     x_powered_by = ""
 
                 requestMethod = r.request.method
-                server = r.headers['Server']
-                contentType = r.headers['Content-Type']
-                contentLength = r.headers['content-length']
+                server = ""#r.headers['Server']
+                contentType = ""#r.headers['Content-Type']
+                contentLength = ""#r.headers['content-length']
                 URL = URL.strip()
                 URL = URL[len(host1):]
                 URL = check_both(URL)
@@ -80,6 +86,7 @@ def parseXML(xmlfile):
             if child.tag == "ResponseData":
                 if not child.text:
                     continue
+ #               textprocessing(child.text)
                 soup = BeautifulSoup(child.text, 'html.parser')
                 for link in soup.find_all('a'):
                     if link.get('href'):
@@ -110,6 +117,8 @@ def parseXML(xmlfile):
 
         # append news dictionary to news items list
 
+#def textprocessing(child):
+
 def processRequestHeaderReferer(child,hostname):
     referer = re.findall(r'Referer: http://', child)
     if len(referer)==0:
@@ -134,10 +143,23 @@ def initialize_fields():
     ws2.cell(row=1, column=12).value = "Degree Centrality:"
     ws2.cell(row=1, column=13).value = "Closeness Centrality:"
     ws2.cell(row=1, column=14).value = "Betweeness Centrality:"
+    ws3.cell(row=1, column=1).value = "Page:"
+    ws3.cell(row=1, column=2).value = "Outgoing:"
+    ws3.cell(row=1, column=3).value = "Incoming:"
 def append_new(max,URL,a,requestMethod,Host,statusCode,server, referer,form,ct,cl,xpb):
     G.add_node(URL)
     G.add_node(a)
     G.add_edge(URL,a)
+    if URL in myglobal:
+        list = myglobal[URL]
+        list[0]+=1
+    else:
+        myglobal[URL]=[1,0]
+    if a in myglobal:
+        list = myglobal[a]
+        list[1]+=1
+    else:
+        myglobal[a] = [0,1]
     mydata.add((URL,a,requestMethod,Host,statusCode,server, referer,form,ct,cl,xpb))
 
 def check_file_type(a):
@@ -177,7 +199,7 @@ def main():
     for i in sorted(mydata):
         outer+=1
         for j,k in enumerate(i):
-            if j==0:
+            if j==1:
                 dc = dcs[k]
                 cn = cns[k]
                 bc = pns[k]
@@ -189,6 +211,15 @@ def main():
         ws2.cell(row=outer, column=13).value = cn
         ws2.cell(row=outer, column=14).value = bc
     wbnew.save('new_excel.xlsx')
+    maxm=2
+    print(myglobal)
+    for i in myglobal:
+        ws3.cell(row=maxm,column=1).value = i
+        l = myglobal[i]
+        ws3.cell(row=maxm,column=2).value = l[0]
+        ws3.cell(row=maxm,column=3).value = l[1]
+        maxm+=1
+    wbnew2.save('data_excel.xlsx')
     nx.draw(G, with_labels=True)
     plt.show()
 
