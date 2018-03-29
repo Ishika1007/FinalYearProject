@@ -4,12 +4,15 @@ import xml.etree.ElementTree as ET
 import re
 import nltk
 import networkx as nx
+import scipy as sp
 import matplotlib.pyplot as plt
 from collections import namedtuple
 import networkx as nx
 from bs4 import BeautifulSoup
 from time import sleep
+import numpy as np
 import requests
+from nltk.tokenize import word_tokenize
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 import csv
@@ -26,9 +29,11 @@ mydata = set()
 G=nx.DiGraph()
 mycount = 0
 myglobal = {}
-payment = ['Credit card','Visa','Master card','CVV','Name on card','Debit card','Payment information','Card number'
-           ,'Postal code','Company Name','Account','Paypal','Paytm','Rs.','USD','Proceed to pay','Rupees']
-session = ['login','logout','username','password','captcha','signup','email','user','sign-in','phone-number','SSN','google']
+
+payment = ['credit', 'card','visa','master','cvv','owner','debit','payment','information','cardnumber'
+           ,'postal','code','company','name','account','paypal','paytm','rupees','rs','usd','Rupees']
+session = ['login','logout','username','password','captcha','signup','email','user','sign','phonenumber','ssn','google']
+
 def parseXML(xmlfile):
 
     initialize_fields()
@@ -86,7 +91,7 @@ def parseXML(xmlfile):
             if child.tag == "ResponseData":
                 if not child.text:
                     continue
- #               textprocessing(child.text)
+              #  textprocessing(child.text)
                 soup = BeautifulSoup(child.text, 'html.parser')
                 for link in soup.find_all('a'):
                     if link.get('href'):
@@ -117,7 +122,11 @@ def parseXML(xmlfile):
 
         # append news dictionary to news items list
 
-#def textprocessing(child):
+'''def textprocessing(child):
+    text_translated = re.sub(r'[^a-z]', ' ', child.lower())
+    text_translated = word_tokenize(text_translated)
+'''
+
 
 def processRequestHeaderReferer(child,hostname):
     referer = re.findall(r'Referer: http://', child)
@@ -125,6 +134,8 @@ def processRequestHeaderReferer(child,hostname):
         return ""
     referer = referer[0]+ hostname
     refererString = (re.findall(r'Referer: http://.*Accept-En',child))
+    if len(refererString)==0:
+        return ""
     refererString = refererString[0]
     return refererString[len(referer):-9]
 
@@ -146,6 +157,12 @@ def initialize_fields():
     ws3.cell(row=1, column=1).value = "Page:"
     ws3.cell(row=1, column=2).value = "Outgoing:"
     ws3.cell(row=1, column=3).value = "Incoming:"
+    ws3.cell(row=1, column=4).value = "Indegree Centrality"
+    ws3.cell(row=1, column=5).value = "Outdegree Centrality"
+    ws3.cell(row=1, column=6).value = "Closeness Centrality"
+    ws3.cell(row=1, column=7).value = "Betweeness Centrality"
+    ws3.cell(row=1, column=8).value = "EigenVector Centrality"
+    ws3.cell(row=1, column=9).value = "PageRank Score"
 def append_new(max,URL,a,requestMethod,Host,statusCode,server, referer,form,ct,cl,xpb):
     G.add_node(URL)
     G.add_node(a)
@@ -186,7 +203,11 @@ def main():
 
     # parse xml file
     parseXML('test123.xml')
-    dcs = nx.degree_centrality(G)
+    ics = nx.in_degree_centrality(G)
+    # Gt = most_important(G) # trimming
+
+    ocs = nx.out_degree_centrality(G)
+
     # Gt = most_important(G) # trimming
 
     cns = nx.closeness_centrality(G)
@@ -194,30 +215,110 @@ def main():
 
     pns = nx.betweenness_centrality(G)
     print(pns)
+    ens = nx.eigenvector_centrality_numpy(G)
+    pgs = nx.pagerank(G, alpha=0.85, personalization=None,
+                      max_iter=10, tol=1.0e-6, nstart=None, weight='weight',
+                      dangling=None)
+
+    def pagerank(G, alpha=0.85, personalization=None,
+                 max_iter=10, tol=1.0e-6, nstart=None, weight='weight',
+                 dangling=None):
+        if len(G) == 0:
+            return {}
+
+        if not G.is_directed():
+            D = G.to_directed()
+        else:
+            D = G
+
+            # Create a copy in (right) stochastic form
+        W = nx.stochastic_graph(D, weight=weight)
+        N = W.number_of_nodes()
+
+        nx.draw(D, with_labels=True, font_weight='bold')
+        plt.show()
+
+        # Choose fixed starting vector if not given
+        if nstart is None:
+            x = dict.fromkeys(W, 1.0 / N)
+        else:
+            # Normalized nstart vector
+            s = float(sum(nstart.values()))
+            x = dict((k, v / s) for k, v in nstart.items())
+
+        if personalization is None:
+
+            # Assign uniform personalization vector if not given
+            p = dict.fromkeys(W, 1.0 / N)
+        else:
+            missing = set(G) - set(personalization)
+            if missing:
+                raise NetworkXError('Personalization dictionary '
+                                    'must have a value for every node. '
+                                    'Missing nodes %s' % missing)
+            s = float(sum(personalization.values()))
+            p = dict((k, v / s) for k, v in personalization.items())
+
+        if dangling is None:
+
+            # Use personalization vector if dangling vector not specified
+            dangling_weights = p
+        else:
+            missing = set(G) - set(dangling)
+            if missing:
+                raise NetworkXError('Dangling node dictionary '
+                                    'must have a value for every node. '
+                                    'Missing nodes %s' % missing)
+            s = float(sum(dangling.values()))
+            dangling_weights = dict((k, v / s) for k, v in dangling.items())
+        dangling_nodes = [n for n in W if W.out_degree(n, weight=weight) == 0.0]
+
+        # power iteration: make up to max_iter iterations
+        for _ in range(max_iter):
+            xlast = x
+            x = dict.fromkeys(xlast.keys(), 0)
+            danglesum = alpha * sum(xlast[n] for n in dangling_nodes)
+            for n in x:
+
+                # this matrix multiply looks odd because it is
+                # doing a left multiply x^T=xlast^T*W
+                for nbr in W[n]:
+                    x[nbr] += alpha * xlast[n] * W[n][nbr][weight]
+                x[n] += danglesum * dangling_weights[n] + (1.0 - alpha) * p[n]
+
+            # check convergence, l1 norm
+            err = sum([abs(x[n] - xlast[n]) for n in x])
+            if err < N * tol:
+                return x
+        raise NetworkXError('pagerank: power iteration failed to converge '
+                            'in %d iterations.' % max_iter)
+
     dc,cn,bc = "","",""
     outer,inner=1,0
     for i in sorted(mydata):
         outer+=1
         for j,k in enumerate(i):
-            if j==1:
-                dc = dcs[k]
-                cn = cns[k]
-                bc = pns[k]
             inner+=1
             if inner==12:
                 inner=1
             ws2.cell(row=outer, column=inner).value = k
-        ws2.cell(row=outer, column=12).value = dc
-        ws2.cell(row=outer, column=13).value = cn
-        ws2.cell(row=outer, column=14).value = bc
+
+
     wbnew.save('new_excel.xlsx')
     maxm=2
     print(myglobal)
     for i in myglobal:
         ws3.cell(row=maxm,column=1).value = i
         l = myglobal[i]
+
         ws3.cell(row=maxm,column=2).value = l[0]
         ws3.cell(row=maxm,column=3).value = l[1]
+        ws3.cell(row=maxm, column=4).value = ics[i]
+        ws3.cell(row=maxm, column=5).value = ocs[i]
+        ws3.cell(row=maxm, column=6).value = cns[i]
+        ws3.cell(row=maxm, column=7).value = pns[i]
+        ws3.cell(row=maxm, column=8).value = ens[i]
+        ws3.cell(row=maxm, column=9).value = pgs[i]
         maxm+=1
     wbnew2.save('data_excel.xlsx')
     nx.draw(G, with_labels=True)
