@@ -16,6 +16,7 @@ from nltk.tokenize import word_tokenize
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 import csv
+from nltk.stem import PorterStemmer
 import openpyxl
 from openpyxl import load_workbook
 wbnew = openpyxl.Workbook()
@@ -33,7 +34,8 @@ myglobal = {}
 payment = ['credit', 'card','visa','master','cvv','owner','debit','payment','information','cardnumber'
            ,'postal','code','company','name','account','paypal','paytm','rupees','rs','usd','Rupees']
 session = ['login','logout','username','password','captcha','signup','email','user','sign','phonenumber','ssn','google']
-
+ps = PorterStemmer()
+form_dict = {}
 def parseXML(xmlfile):
 
     initialize_fields()
@@ -46,6 +48,7 @@ def parseXML(xmlfile):
     # create empty list for news items
     data = []
     outgoingUrl = []
+
     max = ws2.max_row + 1
     for item in root.findall('./Request'):
         # empty news dictionary
@@ -82,6 +85,8 @@ def parseXML(xmlfile):
                 URL = URL.strip()
                 URL = URL[len(host1):]
                 URL = check_both(URL)
+                if not check_file_type(URL):
+                    break
             if child.tag == "RequestHeader":
                 referer = processRequestHeaderReferer(child.text,host)
             if child.tag == "ResponseHeader":
@@ -91,42 +96,76 @@ def parseXML(xmlfile):
             if child.tag == "ResponseData":
                 if not child.text:
                     continue
-              #  textprocessing(child.text)
+                count_pay = textprocessing(child.text)
+                count_session = sessionprocessing(child.text)
                 soup = BeautifulSoup(child.text, 'html.parser')
                 for link in soup.find_all('a'):
                     if link.get('href'):
                         a=link.get('href')
                         a = check_both(a)
-                        append_new(max, URL, a, requestMethod,host,statusCode,server, referer,0,contentType,contentLength,x_powered_by)
+                        if not check_file_type(a):
+                            continue
+                        append_new(max, URL, a, requestMethod,host,statusCode,server, referer,0,contentType,contentLength,x_powered_by,count_pay,count_session)
                         max += 1
                 for link in soup.find_all('script'):
                     script = 1
                     if link.get('src'):
                         a=link.get('src')
                         a = check_both(a)
-                        append_new(max, URL, a, requestMethod,host,statusCode,server, referer,0,contentType,contentLength,x_powered_by)
+                        if not check_file_type(a):
+                            continue
+                        append_new(max, URL, a, requestMethod,host,statusCode,server, referer,0,contentType,contentLength,x_powered_by,count_pay,count_session)
                         max += 1
                 for link in soup.find_all('form'):
                     if link.get('action'):
                         a=link.get('action')
                         a = check_both(a)
-                        append_new(max, URL, a, requestMethod,host,statusCode,server, referer,1,contentType,contentLength,x_powered_by)
+                        if not check_file_type(a):
+                            continue
+                        append_new(max, URL, a, requestMethod,host,statusCode,server, referer,1,contentType,contentLength,x_powered_by,count_pay,count_session)
                         max += 1
                 for link in soup.find_all('meta'):
                     if link.get('URL'):
                         a=link.get('URL')
                         a = check_both(a)
-                        append_new(max, URL, a, requestMethod,host,statusCode,server, referer,0,contentType,contentLength,x_powered_by)
+                        if not check_file_type(a):
+                            continue
+                        append_new(max, URL, a, requestMethod,host,statusCode,server, referer,0,contentType,contentLength,x_powered_by,count_pay,count_session)
                         max += 1
             # special checking for namespace object content:media
 
         # append news dictionary to news items list
 
-'''def textprocessing(child):
+def textprocessing(child):
     text_translated = re.sub(r'[^a-z]', ' ', child.lower())
     text_translated = word_tokenize(text_translated)
-'''
+    fileObj  = open("nlp", "r")
+    fileObj = list(fileObj)
+    count = 0
 
+    for i, j in enumerate(fileObj):
+        fileObj[i] = j[:-1]
+    print(fileObj)
+    for i in fileObj:
+        if i in text_translated:
+            count += 1
+    return count
+
+def sessionprocessing(child):
+    text_translated = re.sub(r'[^a-z]', ' ', child.lower())
+    text_translated = word_tokenize(text_translated)
+    fileObj  = open("session", "r")
+
+    fileObj = list(fileObj)
+    count = 0
+    for i, j in enumerate(fileObj):
+        fileObj[i] = j[:-1]
+
+
+    for i in fileObj:
+        if i in text_translated:
+            count += 1
+    return count
 
 def processRequestHeaderReferer(child,hostname):
     referer = re.findall(r'Referer: http://', child)
@@ -140,6 +179,7 @@ def processRequestHeaderReferer(child,hostname):
     return refererString[len(referer):-9]
 
 def initialize_fields():
+
     ws2.cell(row=1, column=1).value = "Source URL"
     ws2.cell(row=1, column=2).value = "Outgoing URL"
     ws2.cell(row=1, column=3).value = "Request Method"
@@ -151,9 +191,8 @@ def initialize_fields():
     ws2.cell(row=1, column=9).value = "Content-type"
     ws2.cell(row=1, column=10).value = "Content-length"
     ws2.cell(row=1, column=11).value = "X-Powered-by:"
-    ws2.cell(row=1, column=12).value = "Degree Centrality:"
-    ws2.cell(row=1, column=13).value = "Closeness Centrality:"
-    ws2.cell(row=1, column=14).value = "Betweeness Centrality:"
+    ws2.cell(row=1, column=12).value = "Payment words:"
+    ws2.cell(row=1, column=13).value = "Session words:"
     ws3.cell(row=1, column=1).value = "Page:"
     ws3.cell(row=1, column=2).value = "Outgoing:"
     ws3.cell(row=1, column=3).value = "Incoming:"
@@ -163,24 +202,30 @@ def initialize_fields():
     ws3.cell(row=1, column=7).value = "Betweeness Centrality"
     ws3.cell(row=1, column=8).value = "EigenVector Centrality"
     ws3.cell(row=1, column=9).value = "PageRank Score"
-def append_new(max,URL,a,requestMethod,Host,statusCode,server, referer,form,ct,cl,xpb):
+    ws3.cell(row=1, column=10).value = "Payment words:"
+    ws3.cell(row=1, column=11).value = "Session words:"
+    ws3.cell(row=1, column=12).value = "Number of form tags:"
+
+def append_new(max,URL,a,requestMethod,Host,statusCode,server, referer,form,ct,cl,xpb,cnt1,cnt2):
+    URL = check_parameters(URL)
+    a = check_parameters(a)
     G.add_node(URL)
     G.add_node(a)
     G.add_edge(URL,a)
-    if URL in myglobal:
-        list = myglobal[URL]
-        list[0]+=1
+    if URL in form_dict:
+        form_dict[URL]+=form
     else:
-        myglobal[URL]=[1,0]
-    if a in myglobal:
-        list = myglobal[a]
-        list[1]+=1
+        form_dict[URL]=0
+    mydata.add((URL,a,requestMethod,Host,statusCode,server, referer,form,ct,cl,xpb,cnt1,cnt2))
+
+def check_parameters(link):
+    if "?" in link:
+        myindex = link.find("?")
+        return check_suffix(link[:myindex])
     else:
-        myglobal[a] = [0,1]
-    mydata.add((URL,a,requestMethod,Host,statusCode,server, referer,form,ct,cl,xpb))
+        return link
 
 def check_file_type(a):
-    print(type(a))
     if ".css" in a or ".png" in a or ".ico" in a or ".woff" in a or ".woff2" in a or ".gif" in a or ".txt" in a:
         return False
     else:
@@ -211,17 +256,17 @@ def main():
     # Gt = most_important(G) # trimming
 
     cns = nx.closeness_centrality(G)
-    print(cns)
+
 
     pns = nx.betweenness_centrality(G)
-    print(pns)
+
     ens = nx.eigenvector_centrality_numpy(G)
     pgs = nx.pagerank(G, alpha=0.85, personalization=None,
-                      max_iter=10, tol=1.0e-6, nstart=None, weight='weight',
-                      dangling=None)
+                      max_iter=5, tol=1.0e-2, nstart=None, weight='weight',
+                    dangling=None)
 
     def pagerank(G, alpha=0.85, personalization=None,
-                 max_iter=10, tol=1.0e-6, nstart=None, weight='weight',
+                 max_iter=5, tol=1.0e-2, nstart=None, weight='weight',
                  dangling=None):
         if len(G) == 0:
             return {}
@@ -295,11 +340,28 @@ def main():
 
     dc,cn,bc = "","",""
     outer,inner=1,0
+    c1,c2,form=0,0,0
+    count1 = {}
+    count2 = {}
     for i in sorted(mydata):
         outer+=1
+        URL = i[0]
+        a = i[1]
+        count1[URL] = i[-2]
+        count2[URL] = i[-1]
+        if URL in myglobal:
+            list = myglobal[URL]
+            list[0] += 1
+        else:
+            myglobal[URL] = [1, 0]
+        if a in myglobal:
+            list = myglobal[a]
+            list[1] += 1
+        else:
+            myglobal[a] = [0, 1]
         for j,k in enumerate(i):
             inner+=1
-            if inner==12:
+            if inner==14:
                 inner=1
             ws2.cell(row=outer, column=inner).value = k
 
@@ -310,7 +372,6 @@ def main():
     for i in myglobal:
         ws3.cell(row=maxm,column=1).value = i
         l = myglobal[i]
-
         ws3.cell(row=maxm,column=2).value = l[0]
         ws3.cell(row=maxm,column=3).value = l[1]
         ws3.cell(row=maxm, column=4).value = ics[i]
@@ -319,6 +380,16 @@ def main():
         ws3.cell(row=maxm, column=7).value = pns[i]
         ws3.cell(row=maxm, column=8).value = ens[i]
         ws3.cell(row=maxm, column=9).value = pgs[i]
+        if i in count1:
+            c1 = count1[i]
+        if i in count2:
+            c2 = count2[i]
+        ws3.cell(row=maxm, column=10).value = c1
+        ws3.cell(row=maxm, column=11).value = c2
+        if i in form_dict:
+            form = form_dict[i]
+        ws3.cell(row=maxm, column=12).value = form
+
         maxm+=1
     wbnew2.save('data_excel.xlsx')
     nx.draw(G, with_labels=True)
