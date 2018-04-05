@@ -30,10 +30,6 @@ mydata = set()
 G=nx.DiGraph()
 mycount = 0
 myglobal = {}
-
-payment = ['credit', 'card','visa','master','cvv','owner','debit','payment','information','cardnumber'
-           ,'postal','code','company','name','account','paypal','paytm','rupees','rs','usd','Rupees']
-session = ['login','logout','username','password','captcha','signup','email','user','sign','phonenumber','ssn','google']
 ps = PorterStemmer()
 form_dict = {}
 def parseXML(xmlfile):
@@ -63,6 +59,7 @@ def parseXML(xmlfile):
             if child.tag == "Hostname":
                 host = child.text
                 host = host.strip()
+                print(host)
                 host1 = "http://"+host+":80"
             if child.tag == "Url":
                 URL = child.text
@@ -93,10 +90,12 @@ def parseXML(xmlfile):
                 child.text = child.text.strip()
                 statusCode = child.text[9:12]
                 print(statusCode)
+            if child.tag ==
             if child.tag == "ResponseData":
                 if not child.text:
                     continue
                 count_pay = textprocessing(child.text)
+                form = 0
                 count_session = sessionprocessing(child.text)
                 soup = BeautifulSoup(child.text, 'html.parser')
                 for link in soup.find_all('a'):
@@ -145,7 +144,7 @@ def textprocessing(child):
 
     for i, j in enumerate(fileObj):
         fileObj[i] = j[:-1]
-    print(fileObj)
+
     for i in fileObj:
         if i in text_translated:
             count += 1
@@ -172,11 +171,11 @@ def processRequestHeaderReferer(child,hostname):
     if len(referer)==0:
         return ""
     referer = referer[0]+ hostname
-    refererString = (re.findall(r'Referer: http://.*Accept-En',child))
+    refererString = (re.findall(r'Referer: http://.*',child))
     if len(refererString)==0:
         return ""
     refererString = refererString[0]
-    return refererString[len(referer):-9]
+    return check_both(refererString[len(referer):])
 
 def initialize_fields():
 
@@ -205,6 +204,8 @@ def initialize_fields():
     ws3.cell(row=1, column=10).value = "Payment words:"
     ws3.cell(row=1, column=11).value = "Session words:"
     ws3.cell(row=1, column=12).value = "Number of form tags:"
+    ws3.cell(row=1, column=13).value = "Method:"
+    ws3.cell(row=1, column=14).value = "Referer:"
 
 def append_new(max,URL,a,requestMethod,Host,statusCode,server, referer,form,ct,cl,xpb,cnt1,cnt2):
     URL = check_parameters(URL)
@@ -212,10 +213,7 @@ def append_new(max,URL,a,requestMethod,Host,statusCode,server, referer,form,ct,c
     G.add_node(URL)
     G.add_node(a)
     G.add_edge(URL,a)
-    if URL in form_dict:
-        form_dict[URL]+=form
-    else:
-        form_dict[URL]=0
+
     mydata.add((URL,a,requestMethod,Host,statusCode,server, referer,form,ct,cl,xpb,cnt1,cnt2))
 
 def check_parameters(link):
@@ -244,6 +242,12 @@ def check_both(a):
     a = check_path(a)
     a = check_suffix(a)
     return a
+
+def check_request_method(a):
+    if a=="POST" or a=="PUT" or a=="PATCH":
+        return 1
+    else:
+        return 0
 def main():
 
     # parse xml file
@@ -341,14 +345,17 @@ def main():
     dc,cn,bc = "","",""
     outer,inner=1,0
     c1,c2,form=0,0,0
-    count1 = {}
-    count2 = {}
+    referer = ""
+    common = {}
     for i in sorted(mydata):
         outer+=1
         URL = i[0]
         a = i[1]
-        count1[URL] = i[-2]
-        count2[URL] = i[-1]
+        # session,payment, method, form
+        common[URL] = [i[-2], i[-1], i[2], i[6], i[7]]
+        #number of form tags
+        if URL in common:
+            common[URL][4] += i[7]
         if URL in myglobal:
             list = myglobal[URL]
             list[0] += 1
@@ -368,6 +375,7 @@ def main():
 
     wbnew.save('new_excel.xlsx')
     maxm=2
+    method=0
     print(myglobal)
     for i in myglobal:
         ws3.cell(row=maxm,column=1).value = i
@@ -380,16 +388,17 @@ def main():
         ws3.cell(row=maxm, column=7).value = pns[i]
         ws3.cell(row=maxm, column=8).value = ens[i]
         ws3.cell(row=maxm, column=9).value = pgs[i]
-        if i in count1:
-            c1 = count1[i]
-        if i in count2:
-            c2 = count2[i]
+        if i in common:
+            c1 = common[i][0]
+            c2 = common[i][1]
+            method = check_request_method(common[i][2])
+            referer = common[i][3]
+            form = common[i][4]
         ws3.cell(row=maxm, column=10).value = c1
         ws3.cell(row=maxm, column=11).value = c2
-        if i in form_dict:
-            form = form_dict[i]
         ws3.cell(row=maxm, column=12).value = form
-
+        ws3.cell(row=maxm, column=13).value = method
+        ws3.cell(row=maxm, column=14).value = referer
         maxm+=1
     wbnew2.save('data_excel.xlsx')
     nx.draw(G, with_labels=True)
