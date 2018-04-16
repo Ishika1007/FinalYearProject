@@ -25,8 +25,8 @@ ws2 = wbnew.active
 wbnew2 = openpyxl.Workbook()
 wbnew2.save('data_excel.xlsx')
 ws3 = wbnew2.active
-
-mydata = set()
+third = {}
+mydata,mydata2 = set(),set()
 G=nx.DiGraph()
 mycount = 0
 myglobal = {}
@@ -52,6 +52,8 @@ def parseXML(xmlfile):
         ownPath = ""
         URL,host, host1,contentType = "", "","",""
         statusCode=100
+        count_session,count_pay=0,0
+        check = True
         # iterate child elements of item
         for child in item:
             script=0
@@ -59,23 +61,27 @@ def parseXML(xmlfile):
             if child.tag == "Hostname":
                 host = child.text
                 host = host.strip()
-                print(host)
                 host1 = "http://"+host+":80"
             if child.tag == "Url":
                 URL = child.text
+                count_pay = 0
+                count_session = 0
                 # parameters as input from user... symbols "="
-                req1 = requests.get(URL, allow_redirects=False)
-                sessions = requests.Session()
-                retry = Retry(connect=3, backoff_factor=0.5)
-                adapter = HTTPAdapter(max_retries=retry)
-                r = sessions.get(URL)
-                if 'X-Powered-By' in r.headers:
-                    print(URL)
-                    x_powered_by = r.headers['X-Powered-By']
-                else:
-                    x_powered_by = ""
+              #  req1 = requests.get(URL, allow_redirects=False)
+              #  sessions = requests.Session()
+               # retry = Retry(connect=3, backoff_factor=0.5)
+                #adapter = HTTPAdapter(max_retries=retry)
+                #r = sessions.get(URL)
+                #if 'X-Powered-By' in r.headers:
+                  #  #print(URL)
+#                    x_powered_by = r.headers['X-Powered-By']
+ #               else:
+                x_powered_by = ""
 
-                requestMethod = r.request.method
+
+               # print(URL)
+                count_pay = string_text_processing(URL,'nlp')
+                count_session = string_text_processing(URL,'session')
                 server = ""#r.headers['Server']
                 contentType = ""#r.headers['Content-Type']
                 contentLength = ""#r.headers['content-length']
@@ -84,19 +90,32 @@ def parseXML(xmlfile):
                 URL = check_both(URL)
                 if not check_file_type(URL):
                     break
+            if child.tag == "RequestData":
+                if not child.text:
+                    continue
+                parameters = getParameters(child.text)
+                count_pay += list_text_processing(parameters, 'nlp')
+                count_session += list_text_processing(parameters, 'session')
             if child.tag == "RequestHeader":
                 referer = processRequestHeaderReferer(child.text,host)
+                referer = check_parameters(referer)
+                referer = check_both(referer)
+                requestMethod = getRequestMethod(child.text)
+               # print(requestMethod)
             if child.tag == "ResponseHeader":
                 child.text = child.text.strip()
                 statusCode = child.text[9:12]
-                print(statusCode)
-            if child.tag ==
+                #print(statusCode)
+                append_new(max, URL, None, requestMethod, host, statusCode, server, referer, 0, contentType,
+                           contentLength,
+                           x_powered_by, count_pay, count_session)
+
+            #if child.tag ==
             if child.tag == "ResponseData":
                 if not child.text:
                     continue
-                count_pay = textprocessing(child.text)
-                form = 0
-                count_session = sessionprocessing(child.text)
+                #count_pay = string_text_processing(child.text,'nlp')
+               # count_session = sessionprocessing(child.text)
                 soup = BeautifulSoup(child.text, 'html.parser')
                 for link in soup.find_all('a'):
                     if link.get('href'):
@@ -105,6 +124,7 @@ def parseXML(xmlfile):
                         if not check_file_type(a):
                             continue
                         append_new(max, URL, a, requestMethod,host,statusCode,server, referer,0,contentType,contentLength,x_powered_by,count_pay,count_session)
+                        check = True
                         max += 1
                 for link in soup.find_all('script'):
                     script = 1
@@ -114,6 +134,7 @@ def parseXML(xmlfile):
                         if not check_file_type(a):
                             continue
                         append_new(max, URL, a, requestMethod,host,statusCode,server, referer,0,contentType,contentLength,x_powered_by,count_pay,count_session)
+                        check = True
                         max += 1
                 for link in soup.find_all('form'):
                     if link.get('action'):
@@ -122,6 +143,7 @@ def parseXML(xmlfile):
                         if not check_file_type(a):
                             continue
                         append_new(max, URL, a, requestMethod,host,statusCode,server, referer,1,contentType,contentLength,x_powered_by,count_pay,count_session)
+                        check = True
                         max += 1
                 for link in soup.find_all('meta'):
                     if link.get('URL'):
@@ -130,42 +152,72 @@ def parseXML(xmlfile):
                         if not check_file_type(a):
                             continue
                         append_new(max, URL, a, requestMethod,host,statusCode,server, referer,0,contentType,contentLength,x_powered_by,count_pay,count_session)
+                        check = True
                         max += 1
+                if not check:
+                    append_new(max, URL, None, requestMethod, host, statusCode, server, referer, 0, contentType, contentLength,
+                    x_powered_by, count_pay, count_session)
+
             # special checking for namespace object content:media
 
         # append news dictionary to news items list
 
-def textprocessing(child):
-    text_translated = re.sub(r'[^a-z]', ' ', child.lower())
-    text_translated = word_tokenize(text_translated)
-    fileObj  = open("nlp", "r")
+def list_text_processing(child,file):
+ #   text_translated = re.sub(r'[^a-z]', ' ', child.lower())
+ #   text_translated = word_tokenize(text_translated)
+    fileObj  = open(file, "r")
     fileObj = list(fileObj)
     count = 0
 
     for i, j in enumerate(fileObj):
         fileObj[i] = j[:-1]
 
+    for i,j in enumerate(child):
+        child[i] = j.lower()
     for i in fileObj:
-        if i in text_translated:
+        if i in child:
             count += 1
     return count
 
-def sessionprocessing(child):
+def string_text_processing(child,file):
     text_translated = re.sub(r'[^a-z]', ' ', child.lower())
     text_translated = word_tokenize(text_translated)
-    fileObj  = open("session", "r")
-
+    fileObj = open(file, "r")
     fileObj = list(fileObj)
     count = 0
     for i, j in enumerate(fileObj):
         fileObj[i] = j[:-1]
-
-
     for i in fileObj:
         if i in text_translated:
             count += 1
     return count
 
+def getParameters(child):
+    para_list = re.findall(r'\w+\=\w+',child)
+    if len(para_list)>0:
+        list = []
+        for i in para_list:
+            j = i.find("=")
+            word1 = i[:j]
+            text = re.sub(r'[^a-z]', ' ', word1.lower())
+            text = word_tokenize(text)
+            for k in text:
+                list.append(k)
+            word1 = i[j+1:]
+            text = re.sub(r'[^a-z]', '', word1.lower())
+            text = word_tokenize(text)
+            for k in text:
+                if k=="":
+                    continue
+                list.append(k)
+        return list
+    else:
+        return ""
+def getRequestMethod(child):
+    method = re.findall(r'[^/]*/',child)
+    method = method[0]
+    method = method[:-2]
+    return method.strip()
 def processRequestHeaderReferer(child,hostname):
     referer = re.findall(r'Referer: http://', child)
     if len(referer)==0:
@@ -181,17 +233,6 @@ def initialize_fields():
 
     ws2.cell(row=1, column=1).value = "Source URL"
     ws2.cell(row=1, column=2).value = "Outgoing URL"
-    ws2.cell(row=1, column=3).value = "Request Method"
-    ws2.cell(row=1, column=4).value = "Host Name"
-    ws2.cell(row=1, column=5).value = "Status Code"
-    ws2.cell(row=1, column=6).value = "Server"
-    ws2.cell(row=1, column=7).value = "Referer"
-    ws2.cell(row=1, column=8).value = "Form"
-    ws2.cell(row=1, column=9).value = "Content-type"
-    ws2.cell(row=1, column=10).value = "Content-length"
-    ws2.cell(row=1, column=11).value = "X-Powered-by:"
-    ws2.cell(row=1, column=12).value = "Payment words:"
-    ws2.cell(row=1, column=13).value = "Session words:"
     ws3.cell(row=1, column=1).value = "Page:"
     ws3.cell(row=1, column=2).value = "Outgoing:"
     ws3.cell(row=1, column=3).value = "Incoming:"
@@ -205,16 +246,29 @@ def initialize_fields():
     ws3.cell(row=1, column=11).value = "Session words:"
     ws3.cell(row=1, column=12).value = "Number of form tags:"
     ws3.cell(row=1, column=13).value = "Method:"
-    ws3.cell(row=1, column=14).value = "Referer:"
+    ws3.cell(row=1, column=14).value = "Have Third-party connection"
 
 def append_new(max,URL,a,requestMethod,Host,statusCode,server, referer,form,ct,cl,xpb,cnt1,cnt2):
     URL = check_parameters(URL)
-    a = check_parameters(a)
-    G.add_node(URL)
-    G.add_node(a)
-    G.add_edge(URL,a)
-
-    mydata.add((URL,a,requestMethod,Host,statusCode,server, referer,form,ct,cl,xpb,cnt1,cnt2))
+    if check_third_party(a,Host):
+        third[URL] = 1
+        return
+    if URL not in third:
+        third[URL] = 0
+    if a:
+        a = check_parameters(a)
+        G.add_node(a)
+        G.add_node(URL)
+        G.add_node(referer)
+        G.add_edge(referer,URL)
+        G.add_edge(URL, a)
+    else:
+        G.add_node(URL)
+        G.add_node(referer)
+        G.add_edge(referer, URL)
+    mydata2.add((URL,a))
+    mydata2.add((referer,URL))
+    mydata.add((URL,a,requestMethod,Host,statusCode,server, form,ct,cl,cnt1,cnt2))
 
 def check_parameters(link):
     if "?" in link:
@@ -229,11 +283,15 @@ def check_file_type(a):
     else:
         return True
 def check_path(a):
-    if a[0]=='/':
+    if not a:
+        return "/"
+    if a[0]=="/":
         return a
     else:
         return "/"+a
 def check_suffix(a):
+    if not a:
+        return "/"
     if a[-1]=='/':
         return a
     else:
@@ -248,6 +306,14 @@ def check_request_method(a):
         return 1
     else:
         return 0
+
+def check_third_party(a,domain):
+    if a==None:
+        return False
+    if ("http://" in a) and (domain not in a):
+        return True
+    else:
+        return False
 def main():
 
     # parse xml file
@@ -260,7 +326,6 @@ def main():
     # Gt = most_important(G) # trimming
 
     cns = nx.closeness_centrality(G)
-
 
     pns = nx.betweenness_centrality(G)
 
@@ -347,20 +412,38 @@ def main():
     c1,c2,form=0,0,0
     referer = ""
     common = {}
-    for i in sorted(mydata):
+
+    for i in mydata:
+        URL = i[0]
+        # session,payment, method, referer,form
+        if URL in common:
+            max_s = max(i[-2],common[URL][0])
+            max_p = max(i[-1],common[URL][1])
+        else:
+            max_s,max_p = i[-2],i[-1]
+        common[URL] = [max_s, max_p, i[2] ,i[6]]
+        if URL in common:
+            common[URL][3] += i[6]
+    print(common['/bank/pay-bills-purchase-currency.html/'])
+    for i in mydata2:
         outer+=1
         URL = i[0]
         a = i[1]
-        # session,payment, method, form
-        common[URL] = [i[-2], i[-1], i[2], i[6], i[7]]
-        #number of form tags
-        if URL in common:
-            common[URL][4] += i[7]
-        if URL in myglobal:
+        # session,payment, method, referer,form
+
+        if URL in myglobal and a!=None:
             list = myglobal[URL]
             list[0] += 1
+        elif URL not in myglobal:
+            if not a:
+                myglobal[URL] = [0, 0]
+            else:
+                myglobal[URL] = [1, 0]
         else:
-            myglobal[URL] = [1, 0]
+            print("")
+        if not a:
+            outer-=1
+            continue
         if a in myglobal:
             list = myglobal[a]
             list[1] += 1
@@ -368,7 +451,7 @@ def main():
             myglobal[a] = [0, 1]
         for j,k in enumerate(i):
             inner+=1
-            if inner==14:
+            if inner==3:
                 inner=1
             ws2.cell(row=outer, column=inner).value = k
 
@@ -376,8 +459,13 @@ def main():
     wbnew.save('new_excel.xlsx')
     maxm=2
     method=0
-    print(myglobal)
+    #print(myglobal)
+
     for i in myglobal:
+        c1, c2, form = 0, 0, 0
+        method = 0
+        referer = ""
+        mythird = 0
         ws3.cell(row=maxm,column=1).value = i
         l = myglobal[i]
         ws3.cell(row=maxm,column=2).value = l[0]
@@ -392,13 +480,16 @@ def main():
             c1 = common[i][0]
             c2 = common[i][1]
             method = check_request_method(common[i][2])
-            referer = common[i][3]
-            form = common[i][4]
+            form = common[i][3]
+            mythird = third[i]
+        else:
+            c1 = string_text_processing(i, 'nlp')
+            c2 = string_text_processing(i, 'session')
         ws3.cell(row=maxm, column=10).value = c1
         ws3.cell(row=maxm, column=11).value = c2
         ws3.cell(row=maxm, column=12).value = form
         ws3.cell(row=maxm, column=13).value = method
-        ws3.cell(row=maxm, column=14).value = referer
+        ws3.cell(row=maxm, column=14).value = mythird
         maxm+=1
     wbnew2.save('data_excel.xlsx')
     nx.draw(G, with_labels=True)
