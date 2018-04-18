@@ -32,6 +32,7 @@ mycount = 0
 myglobal = {}
 ps = PorterStemmer()
 form_dict = {}
+mylocation = set()
 def parseXML(xmlfile):
 
     initialize_fields()
@@ -57,6 +58,7 @@ def parseXML(xmlfile):
         # iterate child elements of item
         for child in item:
             script=0
+            location = None
             request[child.tag] = child.text
             if child.tag == "Hostname":
                 host = child.text
@@ -105,10 +107,12 @@ def parseXML(xmlfile):
             if child.tag == "ResponseHeader":
                 child.text = child.text.strip()
                 statusCode = child.text[9:12]
-                #print(statusCode)
+                if statusCode[0]=='3':
+                    location = getLocation(child.text,host,host1,URL)
+                    print(location)
                 append_new(max, URL, None, requestMethod, host, statusCode, server, referer, 0, contentType,
                            contentLength,
-                           x_powered_by, count_pay, count_session)
+                           x_powered_by, count_pay, count_session,location)
 
             #if child.tag ==
             if child.tag == "ResponseData":
@@ -123,7 +127,7 @@ def parseXML(xmlfile):
                         a = check_both(a)
                         if not check_file_type(a):
                             continue
-                        append_new(max, URL, a, requestMethod,host,statusCode,server, referer,0,contentType,contentLength,x_powered_by,count_pay,count_session)
+                        append_new(max, URL, a, requestMethod,host,statusCode,server, referer,0,contentType,contentLength,x_powered_by,count_pay,count_session,location)
                         check = True
                         max += 1
                 for link in soup.find_all('script'):
@@ -133,7 +137,7 @@ def parseXML(xmlfile):
                         a = check_both(a)
                         if not check_file_type(a):
                             continue
-                        append_new(max, URL, a, requestMethod,host,statusCode,server, referer,0,contentType,contentLength,x_powered_by,count_pay,count_session)
+                        append_new(max, URL, a, requestMethod,host,statusCode,server, referer,0,contentType,contentLength,x_powered_by,count_pay,count_session,location)
                         check = True
                         max += 1
                 for link in soup.find_all('form'):
@@ -142,7 +146,7 @@ def parseXML(xmlfile):
                         a = check_both(a)
                         if not check_file_type(a):
                             continue
-                        append_new(max, URL, a, requestMethod,host,statusCode,server, referer,1,contentType,contentLength,x_powered_by,count_pay,count_session)
+                        append_new(max, URL, a, requestMethod,host,statusCode,server, referer,1,contentType,contentLength,x_powered_by,count_pay,count_session,location)
                         check = True
                         max += 1
                 for link in soup.find_all('meta'):
@@ -151,12 +155,12 @@ def parseXML(xmlfile):
                         a = check_both(a)
                         if not check_file_type(a):
                             continue
-                        append_new(max, URL, a, requestMethod,host,statusCode,server, referer,0,contentType,contentLength,x_powered_by,count_pay,count_session)
+                        append_new(max, URL, a, requestMethod,host,statusCode,server, referer,0,contentType,contentLength,x_powered_by,count_pay,count_session,location)
                         check = True
                         max += 1
                 if not check:
                     append_new(max, URL, None, requestMethod, host, statusCode, server, referer, 0, contentType, contentLength,
-                    x_powered_by, count_pay, count_session)
+                    x_powered_by, count_pay, count_session,location)
 
             # special checking for namespace object content:media
 
@@ -229,6 +233,25 @@ def processRequestHeaderReferer(child,hostname):
     refererString = refererString[0]
     return check_both(refererString[len(referer):])
 
+def getLocation(child,host,host1,URL):
+    location = re.findall(r'Location:.*',child)
+    if len(location)==0:
+        return None
+    location = location[0]
+    loc = "Location: "
+    mylocation = location[len(loc):]
+    s1 = "http://"+host
+    s2 = "https://"+host
+    if s1 in location:
+        ans = check_parameters(location[(len(loc)+len(s1)):])
+        ans = check_both(ans)
+    elif s2 in location:
+        ans = check_parameters(location[(len(loc) + len(s2)):])
+        ans = check_both(ans)
+    else:
+        ans = check_parameters(mylocation.strip())
+        ans = check_both(ans)
+    return ans
 def initialize_fields():
 
     ws2.cell(row=1, column=1).value = "Source URL"
@@ -248,7 +271,7 @@ def initialize_fields():
     ws3.cell(row=1, column=13).value = "Method:"
     ws3.cell(row=1, column=14).value = "Have Third-party connection"
 
-def append_new(max,URL,a,requestMethod,Host,statusCode,server, referer,form,ct,cl,xpb,cnt1,cnt2):
+def append_new(max,URL,a,requestMethod,Host,statusCode,server, referer,form,ct,cl,xpb,cnt1,cnt2,location):
     URL = check_parameters(URL)
     if check_third_party(a,Host):
         third[URL] = 1
@@ -266,6 +289,10 @@ def append_new(max,URL,a,requestMethod,Host,statusCode,server, referer,form,ct,c
         G.add_node(URL)
         G.add_node(referer)
         G.add_edge(referer, URL)
+    if location:
+        mylocation.add((URL,location))
+   #     G.add_node(location)
+    #    G.add_edge(URL,location)
     mydata2.add((URL,a))
     mydata2.add((referer,URL))
     mydata.add((URL,a,requestMethod,Host,statusCode,server, form,ct,cl,cnt1,cnt2))
@@ -318,6 +345,73 @@ def main():
 
     # parse xml file
     parseXML('test123.xml')
+    dc, cn, bc = "", "", ""
+    outer, inner = 1, 0
+    c1, c2, form = 0, 0, 0
+    referer = ""
+    common = {}
+
+
+    for i in mydata:
+        URL = i[0]
+        # session,payment, method, referer,form
+        if URL in common:
+            max_s = max(i[-2], common[URL][0])
+            max_p = max(i[-1], common[URL][1])
+            max_form = max(i[6],common[URL][3])
+        else:
+            max_s, max_p,max_form = i[-2], i[-1],i[6]
+        common[URL] = [max_s, max_p, i[2], max_form]
+        if URL in common:
+            common[URL][3] += i[6]
+
+    for i in mydata2:
+        outer += 1
+        URL = i[0]
+        a = i[1]
+        # session,payment, method, referer,form
+
+        if URL in myglobal and a != None:
+            list = myglobal[URL]
+            list[0] += 1
+        elif URL not in myglobal:
+            if not a:
+                myglobal[URL] = [0, 0]
+            else:
+                myglobal[URL] = [1, 0]
+        else:
+            print("")
+        if not a:
+            outer -= 1
+            continue
+        if a in myglobal:
+            list = myglobal[a]
+            list[1] += 1
+        else:
+            myglobal[a] = [0, 1]
+        for j, k in enumerate(i):
+            inner += 1
+            if inner == 3:
+                inner = 1
+            ws2.cell(row=outer, column=inner).value = k
+
+    for i in mylocation:
+        Url = i[0]
+        loc = i[1]
+        for j in myglobal:
+            if loc in j:
+                G.add_edge(Url,j)
+                if (Url,j) not in mydata2:
+                    myglobal[Url][0]+=1
+                    myglobal[j][1]+=1
+                    ws2.cell(row = outer+1,column=1).value = Url
+                    ws2.cell(row = outer+1,column=2).value = j
+                    outer+=1
+    # print(myglobal)
+    wbnew.save('new_excel.xlsx')
+    maxm = 2
+    method = 0
+
     ics = nx.in_degree_centrality(G)
     # Gt = most_important(G) # trimming
 
@@ -407,59 +501,8 @@ def main():
         raise NetworkXError('pagerank: power iteration failed to converge '
                             'in %d iterations.' % max_iter)
 
-    dc,cn,bc = "","",""
-    outer,inner=1,0
-    c1,c2,form=0,0,0
-    referer = ""
-    common = {}
-
-    for i in mydata:
-        URL = i[0]
-        # session,payment, method, referer,form
-        if URL in common:
-            max_s = max(i[-2],common[URL][0])
-            max_p = max(i[-1],common[URL][1])
-        else:
-            max_s,max_p = i[-2],i[-1]
-        common[URL] = [max_s, max_p, i[2] ,i[6]]
-        if URL in common:
-            common[URL][3] += i[6]
-    print(common['/bank/pay-bills-purchase-currency.html/'])
-    for i in mydata2:
-        outer+=1
-        URL = i[0]
-        a = i[1]
-        # session,payment, method, referer,form
-
-        if URL in myglobal and a!=None:
-            list = myglobal[URL]
-            list[0] += 1
-        elif URL not in myglobal:
-            if not a:
-                myglobal[URL] = [0, 0]
-            else:
-                myglobal[URL] = [1, 0]
-        else:
-            print("")
-        if not a:
-            outer-=1
-            continue
-        if a in myglobal:
-            list = myglobal[a]
-            list[1] += 1
-        else:
-            myglobal[a] = [0, 1]
-        for j,k in enumerate(i):
-            inner+=1
-            if inner==3:
-                inner=1
-            ws2.cell(row=outer, column=inner).value = k
 
 
-    wbnew.save('new_excel.xlsx')
-    maxm=2
-    method=0
-    #print(myglobal)
 
     for i in myglobal:
         c1, c2, form = 0, 0, 0
