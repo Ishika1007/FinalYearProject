@@ -21,18 +21,22 @@ from sklearn import tree
 from sklearn.datasets import load_iris
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeRegressor
+import matplotlib.pyplot as plt
+from sklearn import linear_model
 import numpy as np
+reg = linear_model.LinearRegression()
+dfs = pd.read_excel('ZEROWEBAPP.xls', sheet_name=0)
 
-dfs = pd.read_excel('data_excel.xlsx', sheet_name=0)
-my_np = dfs.loc[dfs['Outgoing:']>=0,['Indegree Centrality','Outdegree Centrality','PageRank Score',
-                                     'Payment words:','Session words:']].values
-print(my_np)
+features = dfs.loc[dfs['Indegree Centrality']>=0,['Indegree Centrality','Payment words:','Session words:','Method:']].values
+
+
 iris = load_iris()
-X_train, X_test, y_train, y_test = train_test_split(iris.data, iris.target, random_state = 3)
-print(X_train)
-clf = DecisionTreeClassifier().fit(X_train, y_train)
+#X_train, X_test, y_train, y_test = train_test_split(features, value, random_state = 3)
+#clf = DecisionTreeClassifier().fit(X_train, y_train)
+#regr_1 = DecisionTreeRegressor()
+value = list(dfs['Fscore'].values)
 
-print('Accuracy of Decision Tree classifier on training set: {:.2f}'
-    .format(clf.score(X_train, y_train)))
-print('Accuracy of Decision Tree classifier on test set: {:.2f}'
-    .format(clf.score(X_test, y_test)))
+reg.fit(features, value)
+print(reg.coef_)
+print(reg.intercept_)

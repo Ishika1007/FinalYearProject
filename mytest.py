@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 from collections import namedtuple
 import networkx as nx
 from bs4 import BeautifulSoup
+from itertools import groupby
 from time import sleep
 import numpy as np
 import requests
@@ -20,10 +21,10 @@ from nltk.stem import PorterStemmer
 import openpyxl
 from openpyxl import load_workbook
 wbnew = openpyxl.Workbook()
-wbnew.save('new_excel.xlsx')
+wbnew.save('Flipkart_new.xlsx')
 ws2 = wbnew.active
 wbnew2 = openpyxl.Workbook()
-wbnew2.save('data_excel.xlsx')
+wbnew2.save('Flipkart_data.xlsx')
 ws3 = wbnew2.active
 third = {}
 mydata,mydata2 = set(),set()
@@ -95,9 +96,10 @@ def parseXML(xmlfile):
             if child.tag == "RequestData":
                 if not child.text:
                     continue
-                parameters = getParameters(child.text)
+                parameters,values = getParameters(child.text)
                 count_pay += list_text_processing(parameters, 'nlp')
                 count_session += list_text_processing(parameters, 'session')
+                count_pay+=parameter_value_processing(values)
             if child.tag == "RequestHeader":
                 referer = processRequestHeaderReferer(child.text,host)
                 referer = check_parameters(referer)
@@ -198,25 +200,34 @@ def string_text_processing(child,file):
 
 def getParameters(child):
     para_list = re.findall(r'\w+\=\w+',child)
+    print(para_list)
     if len(para_list)>0:
-        list = []
+        list1 = []
+        list2 = []
         for i in para_list:
             j = i.find("=")
             word1 = i[:j]
             text = re.sub(r'[^a-z]', ' ', word1.lower())
             text = word_tokenize(text)
             for k in text:
-                list.append(k)
+                list1.append(k)
             word1 = i[j+1:]
             text = re.sub(r'[^a-z]', '', word1.lower())
             text = word_tokenize(text)
             for k in text:
                 if k=="":
                     continue
-                list.append(k)
-        return list
+                list2.append(k)
+        return list1,list2
     else:
-        return ""
+        return "",""
+
+def parameter_value_processing(mylist):
+    count=0
+    for j in mylist:
+        if passport(j) or adhar_card(j) or credit_card(j) or cheque_num(j) or social_security_num(j):
+            count+=1
+    return count
 def getRequestMethod(child):
     method = re.findall(r'[^/]*/',child)
     method = method[0]
@@ -259,17 +270,18 @@ def initialize_fields():
     ws3.cell(row=1, column=1).value = "Page:"
     ws3.cell(row=1, column=2).value = "Outgoing:"
     ws3.cell(row=1, column=3).value = "Incoming:"
-    ws3.cell(row=1, column=4).value = "Indegree Centrality"
-    ws3.cell(row=1, column=5).value = "Outdegree Centrality"
-    ws3.cell(row=1, column=6).value = "Closeness Centrality"
-    ws3.cell(row=1, column=7).value = "Betweeness Centrality"
-    ws3.cell(row=1, column=8).value = "EigenVector Centrality"
-    ws3.cell(row=1, column=9).value = "PageRank Score"
-    ws3.cell(row=1, column=10).value = "Payment words:"
-    ws3.cell(row=1, column=11).value = "Session words:"
-    ws3.cell(row=1, column=12).value = "Number of form tags:"
-    ws3.cell(row=1, column=13).value = "Method:"
-    ws3.cell(row=1, column=14).value = "Have Third-party connection"
+    ws3.cell(row=1, column=4).value = "Host name:"
+    ws3.cell(row=1, column=5).value = "Indegree Centrality"
+    ws3.cell(row=1, column=6).value = "Outdegree Centrality"
+    ws3.cell(row=1, column=7).value = "Closeness Centrality"
+    ws3.cell(row=1, column=8).value = "Betweeness Centrality"
+    ws3.cell(row=1, column=9).value = "EigenVector Centrality"
+    ws3.cell(row=1, column=10).value = "PageRank Score"
+    ws3.cell(row=1, column=11).value = "Payment words:"
+    ws3.cell(row=1, column=12).value = "Session words:"
+    ws3.cell(row=1, column=13).value = "Number of form tags:"
+    ws3.cell(row=1, column=14).value = "Method:"
+    ws3.cell(row=1, column=15).value = "Have Third-party connection"
 
 def append_new(max,URL,a,requestMethod,Host,statusCode,server, referer,form,ct,cl,xpb,cnt1,cnt2,location):
     URL = check_parameters(URL)
@@ -305,7 +317,7 @@ def check_parameters(link):
         return link
 
 def check_file_type(a):
-    if ".css" in a or ".png" in a or ".ico" in a or ".woff" in a or ".woff2" in a or ".gif" in a or ".txt" in a:
+    if ".css" in a or ".png" in a or ".ico" in a or ".woff" in a or ".woff2" in a or ".gif" in a or ".txt" in a or ".jpg" in a:
         return False
     else:
         return True
@@ -327,7 +339,48 @@ def check_both(a):
     a = check_path(a)
     a = check_suffix(a)
     return a
+#credit-card regex
+def count_consecutive(a):
+    length = 0
+    for _, g in groupby(a):
+        length = max(length,len(list(g)))
+    return length
 
+def credit_card(a):
+    pattern = re.compile(r'(?:\d{4}-){3}\d{4}|\d{16}')
+    if not pattern.fullmatch(a) or count_consecutive(a.replace('-', ''))>= 4:
+        return False
+    else:
+        return True
+
+def adhar_card(a):
+    pattern = re.compile(r'\d{4}\s\d{4}\s\d{4}')
+    pattern2 = re.compile(r'\d{4}\d{4}\d{4}')
+    if pattern.fullmatch(a) or pattern2.fullmatch(a):
+        return True
+    else:
+        return False
+
+def passport(a):
+    pattern = re.compile(r'[A-Z]\d{2}\s\d{5}')
+    pattern2 = re.compile(r'[A-Z]\d{2}\d{5}')
+    if pattern.fullmatch(a) or pattern2.fullmatch(a):
+        return True
+    else:
+        return False
+def cheque_num(a):
+    pattern = re.compile(r'\d{6}')
+    if pattern.fullmatch(a):
+        return True
+    else:
+        return False
+def social_security_num(a):
+    pattern = re.compile(r'^\d{3}-\d{2}-\d{4}$')
+    pattern2 = re.compile(r'^\d{3}\d{2}\d{4}$')
+    if pattern.fullmatch(a) or pattern2.fullmatch(a):
+        return True
+    else:
+        return False
 def check_request_method(a):
     if a=="POST" or a=="PUT" or a=="PATCH":
         return 1
@@ -337,14 +390,15 @@ def check_request_method(a):
 def check_third_party(a,domain):
     if a==None:
         return False
-    if ("http://" in a) and (domain not in a):
+    if ("http://" in a or "https://" in a)  and (domain not in a):
         return True
     else:
         return False
 def main():
 
     # parse xml file
-    parseXML('test123.xml')
+    print('hi')
+    parseXML('flipkart.xml')
     dc, cn, bc = "", "", ""
     outer, inner = 1, 0
     c1, c2, form = 0, 0, 0
@@ -361,7 +415,7 @@ def main():
             max_form = max(i[6],common[URL][3])
         else:
             max_s, max_p,max_form = i[-2], i[-1],i[6]
-        common[URL] = [max_s, max_p, i[2], max_form]
+        common[URL] = [max_s, max_p, i[2], max_form, i[3]]
         if URL in common:
             common[URL][3] += i[6]
 
@@ -408,7 +462,7 @@ def main():
                     ws2.cell(row = outer+1,column=2).value = j
                     outer+=1
     # print(myglobal)
-    wbnew.save('new_excel.xlsx')
+    wbnew.save('Flipkart_new.xlsx')
     maxm = 2
     method = 0
 
@@ -503,38 +557,40 @@ def main():
 
 
 
-
     for i in myglobal:
         c1, c2, form = 0, 0, 0
         method = 0
         referer = ""
         mythird = 0
-        ws3.cell(row=maxm,column=1).value = i
-        l = myglobal[i]
-        ws3.cell(row=maxm,column=2).value = l[0]
-        ws3.cell(row=maxm,column=3).value = l[1]
-        ws3.cell(row=maxm, column=4).value = ics[i]
-        ws3.cell(row=maxm, column=5).value = ocs[i]
-        ws3.cell(row=maxm, column=6).value = cns[i]
-        ws3.cell(row=maxm, column=7).value = pns[i]
-        ws3.cell(row=maxm, column=8).value = ens[i]
-        ws3.cell(row=maxm, column=9).value = pgs[i]
+        host = "www.flipkart.com"
         if i in common:
             c1 = common[i][0]
             c2 = common[i][1]
             method = check_request_method(common[i][2])
             form = common[i][3]
             mythird = third[i]
+            host = common[i][4]
         else:
             c1 = string_text_processing(i, 'nlp')
             c2 = string_text_processing(i, 'session')
-        ws3.cell(row=maxm, column=10).value = c1
-        ws3.cell(row=maxm, column=11).value = c2
-        ws3.cell(row=maxm, column=12).value = form
-        ws3.cell(row=maxm, column=13).value = method
-        ws3.cell(row=maxm, column=14).value = mythird
+        ws3.cell(row=maxm,column=1).value = i
+        l = myglobal[i]
+        ws3.cell(row=maxm,column=2).value = l[0]
+        ws3.cell(row=maxm,column=3).value = l[1]
+        ws3.cell(row=maxm, column=4).value = host
+        ws3.cell(row=maxm, column=5).value = ics[i]
+        ws3.cell(row=maxm, column=6).value = ocs[i]
+        ws3.cell(row=maxm, column=7).value = cns[i]
+        ws3.cell(row=maxm, column=8).value = pns[i]
+        ws3.cell(row=maxm, column=9).value = ens[i]
+        ws3.cell(row=maxm, column=10).value = pgs[i]
+        ws3.cell(row=maxm, column=11).value = c1
+        ws3.cell(row=maxm, column=12).value = c2
+        ws3.cell(row=maxm, column=13).value = form
+        ws3.cell(row=maxm, column=14).value = method
+        ws3.cell(row=maxm, column=15).value = mythird
         maxm+=1
-    wbnew2.save('data_excel.xlsx')
+    wbnew2.save('Flipkart_data.xlsx')
     nx.draw(G, with_labels=True)
     plt.show()
 
