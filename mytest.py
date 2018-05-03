@@ -278,6 +278,8 @@ def initialize_fields():
 
     ws2.cell(row=1, column=1).value = "Source URL"
     ws2.cell(row=1, column=2).value = "Outgoing URL"
+    ws2.cell(row=1, column=3).value = "Source Host"
+    ws2.cell(row=1, column=4).value = "Outgoing Host"
     ws3.cell(row=1, column=1).value = "Page:"
     ws3.cell(row=1, column=2).value = "Outgoing:"
     ws3.cell(row=1, column=3).value = "Incoming:"
@@ -469,11 +471,17 @@ def main():
             list[1] += 1
         else:
             myglobal[a] = [0, 1]
-        for j, k in enumerate(i):
-            inner += 1
-            if inner == 3:
-                inner = 1
-            ws2.cell(row=outer, column=inner).value = k
+        ws2.cell(row=outer, column=1).value = URL
+        ws2.cell(row=outer, column=2).value = a
+
+        host1 = host_global
+        host2 = host_global
+        if URL in myhost:
+            host1 = myhost[URL]
+        if a in myhost:
+            host2 = myhost[a]
+        ws2.cell(row=outer, column=3).value = host1
+        ws2.cell(row=outer, column=4).value = host2
 
     for i in mylocation:
         Url = i[0]
@@ -486,15 +494,15 @@ def main():
                     myglobal[j][1]+=1
                     ws2.cell(row = outer+1,column=1).value = Url
                     ws2.cell(row = outer+1,column=2).value = j
+                    outer+=1
                     host1 = host_global
                     host2 = host_global
                     if Url in myhost:
                         host1 = myhost[Url]
                     if j in myhost:
-                        host2 = myhost[Url]
-                    ws2.cell(row=outer + 1, column=3).value = host1
-                    ws2.cell(row=outer + 1, column=4).value = host2
-                    outer+=1
+                        host2 = myhost[j]
+                    ws2.cell(row=outer, column=3).value = host1
+                    ws2.cell(row=outer, column=4).value = host2
     # print(myglobal)
     wbnew.save('Flipkart_new.xlsx')
     maxm = 2
