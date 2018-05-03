@@ -34,6 +34,7 @@ myglobal = {}
 ps = PorterStemmer()
 form_dict = {}
 mylocation = set()
+myhost = {}
 def parseXML(xmlfile):
 
     initialize_fields()
@@ -48,6 +49,8 @@ def parseXML(xmlfile):
     outgoingUrl = []
 
     max = ws2.max_row + 1
+    port = "80"
+    protocol = "http"
     for item in root.findall('./Request'):
         # empty news dictionary
         request = {}
@@ -61,24 +64,19 @@ def parseXML(xmlfile):
             script=0
             location = None
             request[child.tag] = child.text
+            if child.tag == "Port":
+                port = child.text
+            if child.tag == "Protocol":
+                protocol = child.text
             if child.tag == "Hostname":
                 host = child.text
                 host = host.strip()
-                host1 = "http://"+host+":80"
+                host1 = protocol.strip()+"://"+host+":"+port.strip()
+          #      print("host1"+host1)
             if child.tag == "Url":
                 URL = child.text
                 count_pay = 0
                 count_session = 0
-                # parameters as input from user... symbols "="
-              #  req1 = requests.get(URL, allow_redirects=False)
-              #  sessions = requests.Session()
-               # retry = Retry(connect=3, backoff_factor=0.5)
-                #adapter = HTTPAdapter(max_retries=retry)
-                #r = sessions.get(URL)
-                #if 'X-Powered-By' in r.headers:
-                  #  #print(URL)
-#                    x_powered_by = r.headers['X-Powered-By']
- #               else:
                 x_powered_by = ""
 
 
@@ -90,6 +88,7 @@ def parseXML(xmlfile):
                 contentLength = ""#r.headers['content-length']
                 URL = URL.strip()
                 URL = URL[len(host1):]
+           #     print("url"+URL)
                 URL = check_both(URL)
                 if not check_file_type(URL):
                     break
@@ -111,10 +110,10 @@ def parseXML(xmlfile):
                 statusCode = child.text[9:12]
                 if statusCode[0]=='3':
                     location = getLocation(child.text,host,host1,URL)
-                    print(location)
+                  #  print(location)
                 append_new(max, URL, None, requestMethod, host, statusCode, server, referer, 0, contentType,
                            contentLength,
-                           x_powered_by, count_pay, count_session,location)
+                           x_powered_by, count_pay, count_session,location,protocol)
 
             #if child.tag ==
             if child.tag == "ResponseData":
@@ -126,43 +125,41 @@ def parseXML(xmlfile):
                 for link in soup.find_all('a'):
                     if link.get('href'):
                         a=link.get('href')
-                        a = check_both(a)
                         if not check_file_type(a):
                             continue
-                        append_new(max, URL, a, requestMethod,host,statusCode,server, referer,0,contentType,contentLength,x_powered_by,count_pay,count_session,location)
+                        a = re.sub(r'\\', '', a)
+                        a = re.sub(r'\"', '', a)
+                        append_new(max, URL, a, requestMethod,host,statusCode,server, referer,0,contentType,contentLength,x_powered_by,count_pay,count_session,location,protocol)
                         check = True
                         max += 1
                 for link in soup.find_all('script'):
                     script = 1
                     if link.get('src'):
                         a=link.get('src')
-                        a = check_both(a)
                         if not check_file_type(a):
                             continue
-                        append_new(max, URL, a, requestMethod,host,statusCode,server, referer,0,contentType,contentLength,x_powered_by,count_pay,count_session,location)
+                        append_new(max, URL, a, requestMethod,host,statusCode,server, referer,0,contentType,contentLength,x_powered_by,count_pay,count_session,location,protocol)
                         check = True
                         max += 1
                 for link in soup.find_all('form'):
                     if link.get('action'):
                         a=link.get('action')
-                        a = check_both(a)
                         if not check_file_type(a):
                             continue
-                        append_new(max, URL, a, requestMethod,host,statusCode,server, referer,1,contentType,contentLength,x_powered_by,count_pay,count_session,location)
+                        append_new(max, URL, a, requestMethod,host,statusCode,server, referer,1,contentType,contentLength,x_powered_by,count_pay,count_session,location,protocol)
                         check = True
                         max += 1
                 for link in soup.find_all('meta'):
                     if link.get('URL'):
                         a=link.get('URL')
-                        a = check_both(a)
                         if not check_file_type(a):
                             continue
-                        append_new(max, URL, a, requestMethod,host,statusCode,server, referer,0,contentType,contentLength,x_powered_by,count_pay,count_session,location)
+                        append_new(max, URL, a, requestMethod,host,statusCode,server, referer,0,contentType,contentLength,x_powered_by,count_pay,count_session,location,protocol)
                         check = True
                         max += 1
                 if not check:
                     append_new(max, URL, None, requestMethod, host, statusCode, server, referer, 0, contentType, contentLength,
-                    x_powered_by, count_pay, count_session,location)
+                    x_powered_by, count_pay, count_session,location,protocol)
 
             # special checking for namespace object content:media
 
@@ -181,8 +178,10 @@ def list_text_processing(child,file):
     for i,j in enumerate(child):
         child[i] = j.lower()
     for i in fileObj:
-        if i in child:
-            count += 1
+        for j in child:
+            if i in j:
+                count += 1
+                print("list" + i + " " + j)
     return count
 
 def string_text_processing(child,file):
@@ -194,13 +193,15 @@ def string_text_processing(child,file):
     for i, j in enumerate(fileObj):
         fileObj[i] = j[:-1]
     for i in fileObj:
-        if i in text_translated:
-            count += 1
+        for j in text_translated:
+            if i in j:
+                count += 1
+                print("string"+i+" "+ j)
     return count
 
 def getParameters(child):
     para_list = re.findall(r'\w+\=\w+',child)
-    print(para_list)
+   # print(para_list)
     if len(para_list)>0:
         list1 = []
         list2 = []
@@ -235,14 +236,24 @@ def getRequestMethod(child):
     return method.strip()
 def processRequestHeaderReferer(child,hostname):
     referer = re.findall(r'Referer: http://', child)
-    if len(referer)==0:
+    referer2 = re.findall(r'Referer: https://', child)
+    if len(referer)==0 and len(referer2)==0:
         return ""
-    referer = referer[0]+ hostname
-    refererString = (re.findall(r'Referer: http://.*',child))
-    if len(refererString)==0:
-        return ""
-    refererString = refererString[0]
-    return check_both(refererString[len(referer):])
+    elif len(referer2)==0:
+        referer = referer[0] + hostname
+        refererString = (re.findall(r'Referer: http://.*', child))
+        if len(refererString) == 0:
+            return ""
+        refererString = refererString[0]
+        return check_both(refererString[len(referer):])
+    else:
+        referer = referer2[0] + hostname
+        refererString = (re.findall(r'Referer: https://.*', child))
+        if len(refererString) == 0:
+            return ""
+        refererString = refererString[0]
+        return check_both(refererString[len(referer):])
+
 
 def getLocation(child,host,host1,URL):
     location = re.findall(r'Location:.*',child)
@@ -283,8 +294,10 @@ def initialize_fields():
     ws3.cell(row=1, column=14).value = "Method:"
     ws3.cell(row=1, column=15).value = "Have Third-party connection"
 
-def append_new(max,URL,a,requestMethod,Host,statusCode,server, referer,form,ct,cl,xpb,cnt1,cnt2,location):
+def append_new(max,URL,a,requestMethod,Host,statusCode,server, referer,form,ct,cl,xpb,cnt1,cnt2,location,protocol):
     URL = check_parameters(URL)
+    protocol = protocol.strip()
+    myhost[URL]=Host
     if check_third_party(a,Host):
         third[URL] = 1
         return
@@ -292,6 +305,16 @@ def append_new(max,URL,a,requestMethod,Host,statusCode,server, referer,form,ct,c
         third[URL] = 0
     if a:
         a = check_parameters(a)
+        if Host in a:
+            print(Host + " "+a+" "+protocol)
+            if protocol in a:
+                x = protocol+"://"+Host
+                print(x)
+                a = check_both(a[len(x):])
+            else:
+                a = check_both(a[len(Host):])
+            print(a)
+        a = check_both(check_parameters(a))
         G.add_node(a)
         G.add_node(URL)
         G.add_node(referer)
@@ -303,6 +326,7 @@ def append_new(max,URL,a,requestMethod,Host,statusCode,server, referer,form,ct,c
         G.add_edge(referer, URL)
     if location:
         mylocation.add((URL,location))
+
    #     G.add_node(location)
     #    G.add_edge(URL,location)
     mydata2.add((URL,a))
@@ -398,6 +422,8 @@ def main():
 
     # parse xml file
     print('hi')
+
+    host_global = input()
     parseXML('flipkart.xml')
     dc, cn, bc = "", "", ""
     outer, inner = 1, 0
@@ -460,6 +486,14 @@ def main():
                     myglobal[j][1]+=1
                     ws2.cell(row = outer+1,column=1).value = Url
                     ws2.cell(row = outer+1,column=2).value = j
+                    host1 = host_global
+                    host2 = host_global
+                    if Url in myhost:
+                        host1 = myhost[Url]
+                    if j in myhost:
+                        host2 = myhost[Url]
+                    ws2.cell(row=outer + 1, column=3).value = host1
+                    ws2.cell(row=outer + 1, column=4).value = host2
                     outer+=1
     # print(myglobal)
     wbnew.save('Flipkart_new.xlsx')
@@ -562,7 +596,6 @@ def main():
         method = 0
         referer = ""
         mythird = 0
-        host = "www.flipkart.com"
         if i in common:
             c1 = common[i][0]
             c2 = common[i][1]
