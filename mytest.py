@@ -21,10 +21,10 @@ from nltk.stem import PorterStemmer
 import openpyxl
 from openpyxl import load_workbook
 wbnew = openpyxl.Workbook()
-wbnew.save('Flipkart_new.xlsx')
+wbnew.save('Paytm_new.xlsx')
 ws2 = wbnew.active
 wbnew2 = openpyxl.Workbook()
-wbnew2.save('Flipkart_data.xlsx')
+wbnew2.save('Paytm_data.xlsx')
 ws3 = wbnew2.active
 third = {}
 mydata,mydata2 = set(),set()
@@ -49,8 +49,8 @@ def parseXML(xmlfile):
     outgoingUrl = []
 
     max = ws2.max_row + 1
-    port = "80"
-    protocol = "http"
+    port = "443"
+    protocol = "https"
     for item in root.findall('./Request'):
         # empty news dictionary
         request = {}
@@ -71,9 +71,10 @@ def parseXML(xmlfile):
             if child.tag == "Hostname":
                 host = child.text
                 host = host.strip()
-                host1 = protocol.strip()+"://"+host+":"+port.strip()
+
           #      print("host1"+host1)
             if child.tag == "Url":
+                host1 = protocol.strip() + "://" + host + ":" + port.strip()
                 URL = child.text
                 count_pay = 0
                 count_session = 0
@@ -88,6 +89,7 @@ def parseXML(xmlfile):
                 contentLength = ""#r.headers['content-length']
                 URL = URL.strip()
                 URL = URL[len(host1):]
+               # print(host1+" "+URL)
            #     print("url"+URL)
                 URL = check_both(URL)
                 if not check_file_type(URL):
@@ -181,7 +183,7 @@ def list_text_processing(child,file):
         for j in child:
             if i in j:
                 count += 1
-                print("list" + i + " " + j)
+        #        print("list" + i + " " + j)
     return count
 
 def string_text_processing(child,file):
@@ -196,7 +198,7 @@ def string_text_processing(child,file):
         for j in text_translated:
             if i in j:
                 count += 1
-                print("string"+i+" "+ j)
+               # print("string"+i+" "+ j)
     return count
 
 def getParameters(child):
@@ -298,6 +300,7 @@ def initialize_fields():
 
 def append_new(max,URL,a,requestMethod,Host,statusCode,server, referer,form,ct,cl,xpb,cnt1,cnt2,location,protocol):
     URL = check_parameters(URL)
+    print(URL + "  "+ requestMethod)
     protocol = protocol.strip()
     myhost[URL]=Host
     if check_third_party(a,Host):
@@ -308,14 +311,17 @@ def append_new(max,URL,a,requestMethod,Host,statusCode,server, referer,form,ct,c
     if a:
         a = check_parameters(a)
         if Host in a:
-            print(Host + " "+a+" "+protocol)
             if protocol in a:
                 x = protocol+"://"+Host
-                print(x)
-                a = check_both(a[len(x):])
+                if x in a:
+                    a = check_both(a[len(x):])
+                else:
+                    y = protocol+"//"
+                    if y in a:
+                        a = check_both(a[len(y):])
             else:
-                a = check_both(a[len(Host):])
-            print(a)
+                if Host[0]==a[0]:
+                    a = check_both(a[len(Host):])
         a = check_both(check_parameters(a))
         G.add_node(a)
         G.add_node(URL)
@@ -343,7 +349,7 @@ def check_parameters(link):
         return link
 
 def check_file_type(a):
-    if ".css" in a or ".png" in a or ".ico" in a or ".woff" in a or ".woff2" in a or ".gif" in a or ".txt" in a or ".jpg" in a:
+    if ".css" in a or ".png" in a or ".ico" in a or ".woff" in a or ".woff2" in a or ".gif" in a or ".txt" in a or ".jpg" in a or ".js" in a:
         return False
     else:
         return True
@@ -374,10 +380,10 @@ def count_consecutive(a):
 
 def credit_card(a):
     pattern = re.compile(r'(?:\d{4}-){3}\d{4}|\d{16}')
-    if not pattern.fullmatch(a) or count_consecutive(a.replace('-', ''))>= 4:
-        return False
-    else:
+    if pattern.fullmatch(a):
         return True
+    else:
+        return False
 
 def adhar_card(a):
     pattern = re.compile(r'\d{4}\s\d{4}\s\d{4}')
@@ -426,7 +432,7 @@ def main():
     print('hi')
 
     host_global = input()
-    parseXML('flipkart.xml')
+    parseXML('paytm.xml')
     dc, cn, bc = "", "", ""
     outer, inner = 1, 0
     c1, c2, form = 0, 0, 0
@@ -441,9 +447,10 @@ def main():
             max_s = max(i[-2], common[URL][0])
             max_p = max(i[-1], common[URL][1])
             max_form = max(i[6],common[URL][3])
+            max_method = max(i[2], common[URL][2])
         else:
-            max_s, max_p,max_form = i[-2], i[-1],i[6]
-        common[URL] = [max_s, max_p, i[2], max_form, i[3]]
+            max_s, max_p,max_form,max_method = i[-2], i[-1],i[6],i[2]
+        common[URL] = [max_s, max_p, max_method, max_form, i[3]]
         if URL in common:
             common[URL][3] += i[6]
 
@@ -504,7 +511,7 @@ def main():
                     ws2.cell(row=outer, column=3).value = host1
                     ws2.cell(row=outer, column=4).value = host2
     # print(myglobal)
-    wbnew.save('Flipkart_new.xlsx')
+    wbnew.save('Paytm_new.xlsx')
     maxm = 2
     method = 0
 
@@ -603,6 +610,7 @@ def main():
         c1, c2, form = 0, 0, 0
         method = 0
         referer = ""
+        host = host_global
         mythird = 0
         if i in common:
             c1 = common[i][0]
@@ -631,7 +639,7 @@ def main():
         ws3.cell(row=maxm, column=14).value = method
         ws3.cell(row=maxm, column=15).value = mythird
         maxm+=1
-    wbnew2.save('Flipkart_data.xlsx')
+    wbnew2.save('Paytm_data.xlsx')
     nx.draw(G, with_labels=True)
     plt.show()
 
